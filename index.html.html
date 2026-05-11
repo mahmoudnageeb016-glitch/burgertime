@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burger Time — نظام الكاشير</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Cairo',sans-serif;background:#1a1a1a;color:#fff;min-height:100vh;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:#222;}::-webkit-scrollbar-thumb{background:#f5a800;border-radius:4px;}
+.cat-btn{padding:7px 14px;border-radius:20px;border:2px solid #f5a800;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:12px;white-space:nowrap;}
+.menu-item{background:#2a2a2a;border:1.5px solid #3a3a3a;border-radius:12px;padding:12px 10px;cursor:pointer;text-align:right;position:relative;}
+.menu-item:hover{border-color:#f5a800;background:#333;}
+.menu-item.in-cart{border:2px solid #f5a800;background:#2e2800;}
+.qty-badge{position:absolute;top:6px;left:6px;background:#f5a800;color:#1a1a1a;border-radius:20px;width:22px;height:22px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.tab-btn{padding:7px 12px;border-radius:8px;border:2px solid #f5a800;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:12px;}
+.size-btn{padding:4px 10px;border-radius:6px;border:1.5px solid #555;background:transparent;color:#ccc;cursor:pointer;font-family:'Cairo',sans-serif;font-size:11px;font-weight:600;}
+.size-btn.active{border-color:#f5a800;background:#f5a800;color:#1a1a1a;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+.pin-btn{width:68px;height:52px;border-radius:12px;border:2px solid #3a3a3a;background:#2a2a2a;color:#fff;font-size:20px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;}
+.pin-btn:hover{background:#3a3a3a;border-color:#f5a800;}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid #f5a800;display:inline-block;margin:0 4px;}
+.pin-dot.filled{background:#f5a800;}
+.notif{position:fixed;top:18px;left:50%;transform:translateX(-50%);border-radius:12px;padding:11px 22px;font-weight:700;font-size:13px;z-index:2000;background:#1e1e1e;white-space:nowrap;max-width:90vw;text-align:center;}
+.inp{width:100%;padding:9px 12px;border-radius:9px;border:1.5px solid #444;font-size:13px;background:#222;color:#fff;font-family:'Cairo',sans-serif;}
+.inp:focus{outline:none;border-color:#f5a800;}
+.btn-gold{padding:10px 18px;border-radius:10px;border:none;background:#f5a800;color:#1a1a1a;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+.btn-red{padding:10px 18px;border-radius:10px;border:none;background:#c0391b;color:#fff;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+.btn-green{padding:10px 18px;border-radius:10px;border:none;background:#2d9e5a;color:#fff;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+.btn-dark{padding:10px 18px;border-radius:10px;border:2px solid #444;background:transparent;color:#888;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;}
+.btn-blue{padding:10px 18px;border-radius:10px;border:none;background:#1a6ea8;color:#fff;font-family:'Cairo',sans-serif;font-weight:800;font-size:13px;cursor:pointer;}
+.perm-check{width:18px;height:18px;cursor:pointer;accent-color:#f5a800;}
+.card{background:#2a2a2a;border-radius:12px;border:1px solid #3a3a3a;padding:14px;}
+.exp-tab{padding:8px 18px;border-radius:10px;border:2px solid;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;transition:all 0.15s;}
+input,select,textarea{font-family:'Cairo',sans-serif;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ══════════════════════════════════════════
+const ADMIN_PIN  = "1234";
+const ADMIN_NAME = "الأدمن";
+
+// ══════════════════════════════════════════
+
+const CURRENCY = "CFA";
+const fmt = p => (p||0).toLocaleString() + " " + CURRENCY;
+
+// ── أنواع المصروفات ────────────────────────
+// ADMIN_FIXED: الأدمن فقط
+const ADMIN_EXP_CATS = [
+  { id:"salary",   label:"👷 رواتب الموظفين", icon:"👷", hasSalaryPicker:true },
+  { id:"rent",     label:"🏠 إيجار المحل",    icon:"🏠" },
+  { id:"electric", label:"💡 كهرباء",         icon:"💡" },
+  { id:"water",    label:"💧 ماء",            icon:"💧" },
+  { id:"maintain", label:"🔧 صيانة",          icon:"🔧" },
+  { id:"tax",      label:"📋 ضرائب ورسوم",   icon:"📋" },
+  { id:"other_fix",label:"📦 ثابت متفرق",    icon:"📦" },
+];
+// DAILY: الموظف يسجّل
+const DAILY_EXP_CATS = [
+  { id:"rawmat",   label:"🥩 مواد خام (لحوم وخضار)", icon:"🥩" },
+  { id:"bread",    label:"🍞 خبز وعجين",            icon:"🍞" },
+  { id:"sauce",    label:"🧴 صوصات وتوابل",         icon:"🧴" },
+  { id:"package",  label:"📦 عبوات وأكياس",         icon:"📦" },
+  { id:"fuel",     label:"⛽ بنزين ونقل",            icon:"⛽" },
+  { id:"cleaning", label:"🧹 مواد تنظيف",           icon:"🧹" },
+  { id:"other_day",label:"🗂️ يومي متفرق",           icon:"🗂️" },
+];
+
+const PERMS_DEF = {
+  viewExpenses:  "عرض المصروفات",
+  addExpenses:   "إضافة مصروفات يومية",
+  viewRevenue:   "عرض الإيرادات",
+  viewAllOrders: "عرض طلبات الكل",
+  cancelOrders:  "إلغاء الطلبات مباشرة",
+};
+
+const MENU = {
+  "🍔 سمش برجر":[
+    {id:1,name:"سيمبل",note:"بدون جبنة",emoji:"🍔",prices:{XL:2000,XXL:3000,XXXL:4000}},
+    {id:2,name:"تشيزي",note:"جبنة أمريكية · بصل كراميل",emoji:"🍔",prices:{XL:2500,XXL:3500,XXXL:4500}},
+    {id:3,name:"BBQ سمش",note:"جبنة · بصل · خس · صوص BBQ",emoji:"🍔",prices:{XL:3000,XXL:4000,XXXL:5000}},
+    {id:4,name:"هواوي سمش",note:"جبنة · بصل · خس · أناناس",emoji:"🍔",prices:{XL:3000,XXL:4000,XXXL:5000}},
+    {id:5,name:"كريسبي برجر",note:"دجاج كريسبي · جبنة · مخلل · خس",emoji:"🍔",prices:{XL:3500,XXL:6000,XXXL:7000}},
+    {id:6,name:"مصاحب برجر",note:"دجاج مشوي · جبنة · مخلل · خس BBQ",emoji:"🍔",prices:{XL:3000,XXL:5000,XXXL:6500}},
+    {id:7,name:"ميكسكانو برجر",note:"دجاج مشوي · سمش · جبنة · مخلل",emoji:"🍔",prices:{XXL:5000,XXXL:7000}},
+  ],
+  "🫔 ساندويتشات":[
+    {id:8,name:"شاورما لحم",emoji:"🫔",prices:{XL:2000,XXL:2500}},
+    {id:9,name:"شاورما دجاج",emoji:"🫔",prices:{XL:2500,XXL:3000}},
+    {id:10,name:"شاورما ميكس",emoji:"🫔",prices:{XL:3000,XXL:3500}},
+    {id:11,name:"بيكيني هوت دوج",emoji:"🌭",prices:{XL:2000,XXL:2500}},
+    {id:12,name:"نوجيتس بلات",emoji:"🍗",prices:{XL:3000,XXL:3500}},
+    {id:13,name:"لحم هاشيه",emoji:"🫔",prices:{XL:1500,XXL:2000}},
+  ],
+  "🌮 تاكوس":[
+    {id:14,name:"تاكوس لحم",emoji:"🌮",prices:{XL:3000,XXL:3500}},
+    {id:15,name:"تاكوس دجاج",emoji:"🌮",prices:{XL:3500,XXL:4000}},
+    {id:16,name:"تاكوس شاورما",emoji:"🌮",prices:{XL:3500,XXL:4000}},
+    {id:17,name:"تاكوس ميكس",emoji:"🌮",prices:{XL:4000,XXL:4500}},
+    {id:18,name:"تاكوس نوجيتس",emoji:"🌮",prices:{XL:3500,XXL:4000}},
+  ],
+  "🍕 بيتزا":[
+    {id:19,name:"مارجريتا",emoji:"🍕",prices:{قطعة:4000}},
+    {id:20,name:"نباتية",emoji:"🍕",prices:{قطعة:4500}},
+    {id:21,name:"تونة",emoji:"🍕",prices:{قطعة:5000}},
+    {id:22,name:"لحم",emoji:"🍕",prices:{قطعة:5000}},
+    {id:23,name:"دجاج",emoji:"🍕",prices:{قطعة:5500}},
+    {id:24,name:"دجاج BBQ",emoji:"🍕",prices:{قطعة:6500}},
+    {id:25,name:"ميكس جبن",emoji:"🍕",prices:{قطعة:5500}},
+    {id:26,name:"بيتزا برجر تايم",note:"لحم · دجاج · تونة · موزاريلا · شيدر",emoji:"🍕",prices:{قطعة:7000}},
+  ],
+  "🍟 فريتس":[
+    {id:27,name:"فريتس",emoji:"🍟",prices:{XL:1000,XXL:1500}},
+    {id:28,name:"شيبس",emoji:"🥔",prices:{XL:1000,XXL:1500}},
+    {id:29,name:"سمش فريتس",note:"فريتس · سمش برجر · صوص",emoji:"🍟",prices:{XL:3000,XXL:3500}},
+  ],
+  "🥤 مشروبات":[
+    {id:30,name:"علبة مشروب",emoji:"🥫",prices:{قطعة:500}},
+    {id:31,name:"ماء معدني",emoji:"💧",prices:{قطعة:500}},
+    {id:32,name:"شاي كرك",emoji:"☕",prices:{قطعة:1000}},
+    {id:33,name:"كابتشينو",emoji:"☕",prices:{قطعة:1500}},
+    {id:34,name:"عصير طبيعي",emoji:"🍊",prices:{قطعة:2000}},
+    {id:35,name:"ميلك شيك",emoji:"🥛",prices:{قطعة:2500}},
+  ],
+};
+
+function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
+
+// ══════════════════════════════════════════════
+// نظام اللغتين — Arabic / French
+// الأدمن يختار، الموظف فرنساوي دايماً
+// ══════════════════════════════════════════════
+var LANG = {
+  ar: {
+    dir:"rtl",
+    appTitle:"نظام الكاشير",
+    chooseAccount:"اختر حسابك للدخول",
+    adminDesc:L.adminDesc,
+    empDesc:L.empDesc,
+    enterPin:"أدخل الكود السري (4 أرقام)",
+    adminLogin:"دخول الأدمن",
+    enterPass:"أدخل كلمة المرور",
+    password:"كلمة المرور",
+    wrongPass:"❌ كلمة المرور غلط",
+    wrongPin:"❌ كود خاطئ",
+    loginBtn:"دخول ✓",
+    back:"رجوع",
+    cashier:"🛒 الكاشير",
+    orders:"📋 الطلبات",
+    expenses:"💸 المصروفات",
+    employees:"👥 موظفين",
+    logout:"خروج",
+    search:"🔍 ابحث عن صنف...",
+    onTable:"على الطاولة",
+    takeaway:"تيك أواي",
+    delivery:"ديلفري",
+    tableNum:"رقم الطاولة",
+    notes:"📝 ملاحظات...",
+    total:"الإجمالي",
+    clearCart:"🗑️",
+    confirmOrder:"✅ تأكيد الطلب",
+    currentOrder:"🛒 الطلب الحالي",
+    emptyCart:"اختر الأصناف من القائمة",
+    menuTab:"🍔 القائمة",
+    cartTab:"🛒 الطلب",
+    emptyCartMsg:"السلة فاضية",
+    viewCart:"🛒 عرض الطلب",
+    sNew:"جديد", sProgress:"قيد التنفيذ", sDone:"مكتمل", sCancelled:"ملغي",
+    todayOrders:T("todayOrders"), revenue:T("revenue"), pending:T("pending"),
+    noOrders:"لا توجد طلبات",
+    newOrder:"+ طلب جديد",
+    orderDone:"تم تسجيل الطلب!",
+    followOrders:"تابعه من صفحة الطلبات",
+    goOrders:"📋 الطلبات",
+    cancelBtn:"❌ إلغاء", deleteBtn:"🗑️ حذف",
+    reqCancel:"❌ طلب إلغاء", reqDelete:"🗑️ طلب حذف",
+    waitAdmin:"⏳ انتظار الأدمن",
+    approveBtn:"✅ موافقة", rejectBtn:"❌ رفض",
+    needsApproval:"تحتاج موافقتك",
+    syncOk:T("syncOk"),
+    syncBusy:"⏳ جاري الرفع...",
+    langBtn:"🇫🇷 Français",
+    welcomeMsg:"أهلاً",
+    todayLabel:"اليوم:",
+    revenueLabel:"الإيرادات:",
+    pendingLabel:"انتظار:",
+  },
+  fr: {
+    dir:"ltr",
+    appTitle:"Caisse",
+    chooseAccount:"Choisissez votre compte",
+    adminDesc:"Code secret · Accès complet",
+    empDesc:"Employé — Mot de passe",
+    enterPin:"Code secret (4 chiffres)",
+    adminLogin:"Connexion Admin",
+    enterPass:"Entrez le mot de passe",
+    password:"Mot de passe",
+    wrongPass:"❌ Mot de passe incorrect",
+    wrongPin:"❌ Code incorrect",
+    loginBtn:"Connexion ✓",
+    back:"Retour",
+    cashier:"🛒 Caisse",
+    orders:"📋 Commandes",
+    expenses:"💸 Dépenses",
+    employees:"👥 Employés",
+    logout:"Déconnexion",
+    search:"🔍 Rechercher...",
+    onTable:"Sur place",
+    takeaway:"À emporter",
+    delivery:"Livraison",
+    tableNum:"N° Table",
+    notes:"📝 Notes...",
+    total:"TOTAL",
+    clearCart:"🗑️",
+    confirmOrder:"✅ Confirmer",
+    currentOrder:"🛒 Commande en cours",
+    emptyCart:"Sélectionnez des articles",
+    menuTab:"🍔 Menu",
+    cartTab:"🛒 Panier",
+    emptyCartMsg:"Panier vide",
+    viewCart:"🛒 Voir le panier",
+    sNew:"Nouveau", sProgress:"En cours", sDone:"Terminé", sCancelled:"Annulé",
+    todayOrders:"Commandes auj.", revenue:"Recettes du jour", pending:"En attente",
+    noOrders:"Aucune commande",
+    newOrder:"+ Nouvelle commande",
+    orderDone:"Commande enregistrée!",
+    followOrders:"Voir dans Commandes",
+    goOrders:"📋 Commandes",
+    cancelBtn:"❌ Annuler", deleteBtn:"🗑️ Supprimer",
+    reqCancel:"❌ Annulation", reqDelete:"🗑️ Suppression",
+    waitAdmin:"⏳ En attente admin",
+    approveBtn:"✅ Approuver", rejectBtn:"❌ Refuser",
+    needsApproval:"Approbations requises",
+    syncOk:"✅ Sync Sheets OK",
+    syncBusy:"⏳ Sync en cours...",
+    langBtn:"🇸🇦 العربية",
+    welcomeMsg:"Bonjour",
+    todayLabel:"Auj:",
+    revenueLabel:"Recettes:",
+    pendingLabel:"Attente:",
+  }
+};
+
+function getLang() {
+  // الموظف دايماً فرنساوي، الأدمن يختار
+  if (S.currentUser && S.currentUser.role !== "admin") return LANG.fr;
+  var saved = localStorage.getItem("bt_lang") || "ar";
+  return LANG[saved];
+}
+function T(key) { return getLang()[key] || key; }
+function toggleLang() {
+  var cur = localStorage.getItem("bt_lang") || "ar";
+  localStorage.setItem("bt_lang", cur === "ar" ? "fr" : "ar");
+  render();
+}
+
+// Fix status arrays to use language
+function getStatusFlow() {
+  return [T("sNew"), T("sProgress"), T("sDone")];
+}
+function getStatusStyle(status) {
+  var styles = {};
+  styles[T("sNew")]      = {bg:"#2a1a00", border:"#f5a800", color:"#f5a800", icon:"🆕"};
+  styles[T("sProgress")] = {bg:"#001a2a", border:"#1a8fe0", color:"#1a8fe0", icon:"🔥"};
+  styles[T("sDone")]     = {bg:"#001a0a", border:"#2d9e5a", color:"#2d9e5a", icon:"✅"};
+  styles[T("sCancelled")]= {bg:"#1a0000", border:"#c0391b", color:"#c0391b", icon:"❌"};
+  return styles[status] || {bg:"#2a1a00", border:"#f5a800", color:"#f5a800", icon:"🆕"};
+}
+
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+// ══════════════════════════════════════════════
+// Google Sheets Sync
+// ══════════════════════════════════════════════
+var GSHEET_URL = "https://script.google.com/macros/s/AKfycbwrIAmWFSbSuqITKaE4TjKpCD1kv8bA-s6ILdxayuc4aZLQ9_LnLOYy1RmeRmbtw899/exec";
+
+function gSend(payload) {
+  if (!GSHEET_URL) return;
+  try {
+    var blob = new Blob([JSON.stringify(payload)], {type: "text/plain"});
+    navigator.sendBeacon(GSHEET_URL, blob);
+  } catch(e) {
+    try {
+      var x = new XMLHttpRequest();
+      x.timeout = 8000;
+      x.open("POST", GSHEET_URL, true);
+      x.setRequestHeader("Content-Type", "text/plain");
+      x.send(JSON.stringify(payload));
+    } catch(e2) {}
+  }
+}
+
+function syncNow() {
+  var ordHdr = ["رقم الطلب","التاريخ","الوقت","نوع الطلب","الطاولة","الاصناف","الكمية","ملاحظات","الموظف","الحالة","الاجمالي CFA"];
+  var ordRows = orders.map(function(o) {
+    return [o.id, o.dateISO||o.date, o.time, o.orderType, o.tableNum,
+      o.items.map(function(i){return i.name+(i.size&&i.size!=="قطعة"?" ("+i.size+")":"")+" x"+i.qty;}).join(", "),
+      o.items.reduce(function(s,i){return s+i.qty;},0),
+      o.note||"", o.placedBy||"", o.status, o.total];
+  });
+
+  var expHdr = ["التاريخ","النوع","الفئة","البند","اسم الموظف","المبلغ CFA","طريقة الدفع","اضافه","ملاحظات"];
+  var expRows = expenses.map(function(e) {
+    return [e.date, e.type==="admin"?"ثابت":"يومي", e.catLabel, e.item,
+      e.employeeName||"", e.amount, e.pay, e.addedBy||"", e.notes||""];
+  });
+
+  var dM = {};
+  orders.forEach(function(o) {
+    var d = o.dateISO||o.date;
+    if (!dM[d]) dM[d] = {n:0, rev:0, dE:0, fE:0};
+    if (o.status !== "ملغي") { dM[d].n++; dM[d].rev += o.total; }
+  });
+  expenses.forEach(function(e) {
+    if (!dM[e.date]) dM[e.date] = {n:0, rev:0, dE:0, fE:0};
+    if (e.type === "daily") dM[e.date].dE += (+e.amount||0);
+    else dM[e.date].fE += (+e.amount||0);
+  });
+  var dailyRows = Object.keys(dM).sort().reverse().map(function(d) {
+    var v = dM[d];
+    return [d, v.n, v.rev, v.dE, v.fE, v.rev - v.dE - v.fE];
+  });
+
+  gSend({type:"orders",   rows: ordRows});
+  gSend({type:"expenses", rows: expRows});
+  gSend({type:"daily",    rows: dailyRows});
+}
+
+// رفع تلقائي كل ما في تغيير
+var syncTimer = null;
+function autoSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function() {
+    syncNow();
+    setBadge("ok");
+  }, 4000);
+}
+
+function setBadge(state) {
+  var el = document.getElementById("sync-badge");
+  if (!el) return;
+  if (state === "ok") el.innerHTML = "<span style=\"color:#2d9e5a;font-size:10px;\">✅ متزامن مع Sheets</span>";
+  else if (state === "syncing") el.innerHTML = "<span style=\"color:#1a8fe0;font-size:10px;\">⏳ جاري الرفع...</span>";
+}
+
+// رفع كل 5 دقائق
+setInterval(function() { syncNow(); }, 5 * 60 * 1000);
+
+
+
+const DEFAULT_PERMS={viewExpenses:false,addExpenses:false,viewRevenue:false,viewAllOrders:false,cancelOrders:false};
+
+let employees = load("bt6_emps",[
+  {id:1,name:"أحمد",password:"1111",active:true,perms:{...DEFAULT_PERMS,addExpenses:true}},
+  {id:2,name:"سارة",password:"2222",active:true,perms:{...DEFAULT_PERMS,viewExpenses:true,addExpenses:true}},
+]);
+let orders   = load("bt6_orders",[]);
+let delReqs  = load("bt6_delreqs",[]);
+let expenses = load("bt6_expenses",[]); // {id,date,type:"admin"|"daily",catId,catLabel,item,employeeName,amount,pay,notes,addedBy}
+
+let sel={};
+Object.values(MENU).flat().forEach(i=>{sel[i.id]=Object.keys(i.prices)[0];});
+
+let S={
+  screen:"login", currentUser:null,
+  loginStep:"select", loginTarget:null,
+  pinVal:"", pinErr:"", empPassVal:"", empPassErr:"",
+  cat:"🍔 سمش برجر", cart:[], tableNum:"", orderType:"على الطاولة",
+  view:"pos", search:"", note:"", showConfirm:false,
+
+  // Expenses
+  expTab:"daily",   // "admin" | "daily"
+  adminExpForm:{date:new Date().toLocaleDateString("en-CA"),catId:"salary",employeeName:"",item:"",amount:"",pay:"كاش",notes:""},
+  adminExpErr:"",
+  dailyExpForm:{date:new Date().toLocaleDateString("en-CA"),catId:"rawmat",item:"",amount:"",pay:"كاش",notes:""},
+  dailyExpErr:"",
+
+  // Employees
+  empForm:{name:"",password:"",id:null,perms:{...DEFAULT_PERMS}},
+  empFormErr:"",
+
+  // Google Sheets
+
+  notif:null,
+};
+
+// ─── Helpers ──────────────────────────────────────────
+const today    = ()=>new Date().toLocaleDateString("ar-DZ");
+const todayISO = ()=>new Date().toLocaleDateString("en-CA");
+const timeNow  = ()=>new Date().toLocaleTimeString("ar-DZ");
+const isAdmin  = ()=>S.currentUser?.role==="admin";
+const hasPerm  = p=>isAdmin()||(S.currentUser?.perms?.[p]===true);
+const getTotal = ()=>S.cart.reduce((s,c)=>s+c.price*c.qty,0);
+const getTodayO= ()=>orders.filter(o=>o.date===today());
+const getRevenue=()=>getTodayO().filter(o=>o.status!==T('sCancelled')).reduce((s,o)=>s+o.total,0);
+const getPending=()=>orders.filter(o=>o.status==="جديد").length;
+const getPendingReqs=()=>delReqs.filter(r=>r.status==="pending");
+const totalRevenue=()=>orders.filter(o=>o.status!==T('sCancelled')).reduce((s,o)=>s+o.total,0);
+const totalExp = type=>expenses.filter(e=>!type||e.type===type).reduce((s,e)=>s+(+e.amount||0),0);
+const todayExp = type=>expenses.filter(e=>e.date===todayISO()&&(!type||e.type===type)).reduce((s,e)=>s+(+e.amount||0),0);
+const getCatLabel = id=>[...ADMIN_EXP_CATS,...DAILY_EXP_CATS].find(c=>c.id===id)?.label||id;
+
+function notif(msg,color="#f5a800"){S.notif={msg,color};render();setTimeout(()=>{S.notif=null;render();},3000);}
+
+// ─── Auth ─────────────────────────────────────────────
+function selectAdmin(){S.loginStep="pin";S.pinVal="";S.pinErr="";render();}
+function selectEmp(emp){S.loginTarget=emp;S.loginStep="emppass";S.empPassVal="";S.empPassErr="";render();}
+function pinPress(d){if(S.pinVal.length>=4)return;S.pinVal+=d;if(S.pinVal.length===4)setTimeout(checkAdminPin,150);else render();}
+function pinBack(){S.pinVal=S.pinVal.slice(0,-1);render();}
+function checkAdminPin(){
+  if(S.pinVal===ADMIN_PIN){S.currentUser={id:0,name:ADMIN_NAME,role:"admin",perms:{}};S.screen="pos";S.view="pos";S.pinErr="";notif("👑 أهلاً "+ADMIN_NAME+"!");}
+  else{S.pinErr="❌ كود خاطئ";S.pinVal="";render();}
+}
+function checkEmpPass(){
+  const e=S.loginTarget;if(!e)return;
+  if(S.empPassVal===e.password){S.currentUser={id:e.id,name:e.name,role:"emp",perms:{...DEFAULT_PERMS,...(e.perms||{})}};S.screen="pos";S.view="pos";S.empPassErr="";notif("👋 أهلاً "+e.name+"!");}
+  else{S.empPassErr="❌ كلمة المرور غلط";render();}
+}
+function logout(){S.currentUser=null;S.screen="login";S.loginStep="select";S.loginTarget=null;S.pinVal="";S.empPassVal="";S.cart=[];S.note="";S.tableNum="";S.search="";render();}
+
+// ─── Cart ─────────────────────────────────────────────
+function addToCart(item){
+  const size=sel[item.id],price=item.prices[size],cartId=item.id+"-"+size;
+  const ex=S.cart.find(c=>c.cartId===cartId);
+  if(ex)S.cart=S.cart.map(c=>c.cartId===cartId?{...c,qty:c.qty+1}:c);
+  else S.cart=[...S.cart,{...item,cartId,size,price,qty:1}];render();
+}
+function removeFromCart(cartId){
+  const ex=S.cart.find(c=>c.cartId===cartId);
+  if(ex&&ex.qty>1)S.cart=S.cart.map(c=>c.cartId===cartId?{...c,qty:c.qty-1}:c);
+  else S.cart=S.cart.filter(c=>c.cartId!==cartId);render();
+}
+function clearCart(){S.cart=[];S.tableNum="";S.note="";render();}
+function placeOrder(){
+  if(!S.cart.length)return;
+  const o={id:Date.now(),tableNum:S.tableNum||"—",orderType:S.orderType,
+    items:[...S.cart],total:getTotal(),note:S.note,
+    time:timeNow(),date:today(),dateISO:todayISO(),status:T('sNew'),
+    placedBy:S.currentUser.name,placedById:S.currentUser.id};
+  orders=[o,...orders];save("bt6_orders",orders);S.showConfirm=true;clearCart();autoSync();
+}
+
+// ─── Auto Sync ────────────────────────────────────────
+// يرفع في الخلفية بصمت — بدون إزعاج المستخدم
+
+
+// ═══════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════
+
+function renderLogin(){
+  const activeEmps=employees.filter(e=>e.active);
+  if(S.loginStep==="pin")return`<div class="overlay" style="position:fixed;background:#1a1a1a;" dir="${getLang().dir}"><div style="text-align:center;max-width:310px;width:90%;">
+    <div style="margin-bottom:22px;"><div style="font-size:32px;">👑</div><div style="font-weight:800;font-size:18px;color:#f5a800;margin-top:6px;">${T("adminLogin")}</div><div style="font-size:12px;color:#555;margin-top:4px;">${T("enterPin")}</div></div>
+    <div style="margin-bottom:16px;">${[0,1,2,3].map(i=>`<span class="pin-dot ${i<S.pinVal.length?'filled':''}"></span>`).join("")}</div>
+    ${S.pinErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:10px;font-weight:700;">${S.pinErr}</div>`:""}
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-btn" onclick="pinPress('${n}')">${n}</button>`).join("")}
+      <button class="pin-btn" onclick="pinBack()" style="color:#c0391b;">⌫</button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn" onclick="S.loginStep='select';render()" style="color:#888;font-size:12px;">رجوع</button>
+    </div>
+  </div></div>`;
+
+  if(S.loginStep==="emppass"){const e=S.loginTarget;return`<div class="overlay" style="position:fixed;background:#1a1a1a;" dir="${getLang().dir}"><div style="text-align:center;max-width:320px;width:90%;">
+    <div style="width:58px;height:58px;border-radius:50%;background:#f5a800;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">👤</div>
+    <div style="font-weight:800;font-size:18px;margin-bottom:4px;">${getLang().welcomeMsg}, ${e.name}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:16px;">${T("enterPass")}</div>
+    <input class="inp" type="password" placeholder="${T('password')}" value="${S.empPassVal}" oninput="S.empPassVal=this.value" onkeydown="if(event.key==='Enter')checkEmpPass()" style="margin-bottom:10px;font-size:18px;letter-spacing:4px;text-align:center;">
+    ${S.empPassErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:8px;font-weight:700;">${S.empPassErr}</div>`:""}
+    <div style="display:flex;gap:8px;"><button class="btn-dark" onclick="S.loginStep='select';render()" style="flex:1;">${T("back")}</button><button class="btn-gold" onclick="checkEmpPass()" style="flex:2;">${T("loginBtn")}</button></div>
+  </div></div>`;}
+
+  var L = getLang ? getLang() : LANG.ar;
+  return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;" dir="${L.dir}">
+    <div style="margin-bottom:28px;text-align:center;">
+      <div style="background:#f5a800;border-radius:16px;width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;">⏱️</div>
+      <div style="font-weight:800;font-size:20px;color:#f5a800;letter-spacing:1px;">BURGER TIME</div>
+      <div style="font-size:12px;color:#555;margin-top:3px;">${L.chooseAccount}</div>
+    </div>
+    <div style="width:100%;max-width:380px;">
+      <button onclick="selectAdmin()" style="width:100%;padding:13px 18px;border-radius:14px;border:2px solid #f5a800;background:#1a1000;cursor:pointer;font-family:Cairo,sans-serif;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#f5a800;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👑</div>
+        <div style="text-align:right;"><div style="font-weight:800;font-size:14px;color:#f5a800;">${ADMIN_NAME}</div><div style="font-size:11px;color:#666;margin-top:2px;">كود سري · رواتب وإيجار وكهرباء وصيانة</div></div>
+      </button>
+      ${activeEmps.length===0?`<div style="text-align:center;color:#444;padding:14px;font-size:12px;">لا يوجد موظفين مفعّلين</div>`:""}
+      ${activeEmps.map(e=>{
+        const permsActive=Object.entries(e.perms||{}).filter(([,v])=>v).map(([k])=>PERMS_DEF[k]);
+        return`<button onclick="selectEmp(${JSON.stringify(e).replace(/"/g,'&quot;')})" style="width:100%;padding:13px 18px;border-radius:14px;border:1.5px solid #333;background:#222;cursor:pointer;font-family:Cairo,sans-serif;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:#2a2a2a;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">👤</div>
+          <div style="flex:1;text-align:right;">
+            <div style="font-weight:700;font-size:14px;color:#fff;">${e.name}</div>
+            <div style="font-size:10px;color:#555;margin-top:3px;display:flex;gap:5px;flex-wrap:wrap;">
+              ${permsActive.length?permsActive.map(p=>`<span style="background:#2a2a2a;border:1px solid #3a3a3a;border-radius:5px;padding:1px 6px;color:#aaa;">${p}</span>`).join(""):`<span style="color:#444;">بدون صلاحيات إضافية</span>`}
+            </div>
+          </div>
+        </button>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+
+function renderPOS(){
+  const items=S.search?Object.values(MENU).flat().filter(i=>i.name.includes(S.search)):MENU[S.cat]||[];
+  const total=getTotal();
+  const cartCount=S.cart.reduce((s,c)=>s+c.qty,0);
+  const isMob=window.innerWidth<768;
+
+  // ── موبايل: تابين — قائمة | سلة ──────────────────
+  if(isMob){
+    return`<div style="display:flex;flex-direction:column;height:calc(100vh - 95px);">
+
+      <!-- تابات الموبايل -->
+      <div style="display:flex;background:#111;border-bottom:2px solid #333;flex-shrink:0;">
+        <button onclick="S.posTab='menu';render()" style="flex:1;padding:11px 0;border:none;background:${(S.posTab||'menu')==='menu'?'#f5a800':'transparent'};color:${(S.posTab||'menu')==='menu'?'#1a1a1a':'#888'};font-family:Cairo,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">
+          🍔 القائمة
+        </button>
+        <button onclick="S.posTab='cart';render()" style="flex:1;padding:11px 0;border:none;background:${S.posTab==='cart'?'#f5a800':'transparent'};color:${S.posTab==='cart'?'#1a1a1a':'#888'};font-family:Cairo,sans-serif;font-weight:800;font-size:14px;cursor:pointer;position:relative;">
+          🛒 الطلب
+          ${cartCount>0?`<span style="position:absolute;top:6px;left:calc(50% - 30px);background:#c0391b;color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;font-weight:800;">${cartCount}</span>`:''}
+        </button>
+      </div>
+
+      <!-- القائمة -->
+      ${(S.posTab||'menu')==='menu'?`
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:8px 12px;background:#222;border-bottom:1px solid #333;flex-shrink:0;">
+          <input placeholder="${T('search')}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:14px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
+        </div>
+        ${!S.search?`<div style="display:flex;gap:7px;padding:8px 12px;background:#1e1e1e;border-bottom:1px solid #333;overflow-x:auto;flex-shrink:0;">
+          ${Object.keys(MENU).map(cat=>`<button class="cat-btn" onclick="S.cat=\`${cat}\`;render()" style="background:${S.cat===cat?'#f5a800':'transparent'};color:${S.cat===cat?'#1a1a1a':'#f5a800'};font-size:11px;padding:6px 12px;">${cat}</button>`).join("")}
+        </div>`:''}
+        <div style="flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;align-content:start;">
+          ${items.map(item=>{
+            const sizes=Object.keys(item.prices),sz=sel[item.id];
+            const inCart=S.cart.filter(c=>c.id===item.id).reduce((s,c)=>s+c.qty,0);
+            return`<div class="menu-item ${inCart?'in-cart':''}" onclick="addToCart(${JSON.stringify(item).replace(/"/g,'&quot;')})">
+              ${inCart?`<div class="qty-badge">${inCart}</div>`:''}
+              <div style="font-size:28px;margin-bottom:5px;">${item.emoji}</div>
+              <div style="font-weight:700;font-size:13px;margin-bottom:2px;">${item.name}</div>
+              ${item.note?`<div style="font-size:10px;color:#888;margin-bottom:4px;line-height:1.3;">${item.note}</div>`:''}
+              ${sizes.length>1?`<div style="display:flex;gap:4px;margin-bottom:5px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+                ${sizes.map(s=>`<button class="size-btn ${sz===s?'active':''}" onclick="event.stopPropagation();sel[${item.id}]='${s}';render()">${s}</button>`).join('')}
+              </div>`:''}
+              <div style="color:#f5a800;font-weight:800;font-size:13px;">${fmt(item.prices[sz])}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <!-- زر إضافي لفتح السلة -->
+        ${cartCount>0?`<div style="padding:10px 12px;background:#111;border-top:1px solid #333;flex-shrink:0;">
+          <button onclick="S.posTab='cart';render()" style="width:100%;padding:12px 0;border-radius:10px;border:none;background:#f5a800;color:#1a1a1a;font-family:Cairo,sans-serif;font-weight:800;font-size:15px;cursor:pointer;">
+            🛒 عرض الطلب (${cartCount} صنف) — ${fmt(total)}
+          </button>
+        </div>`:''}
+      </div>`:`
+
+      <!-- السلة على الموبايل -->
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1e1e1e;">
+        <div style="padding:9px 12px;border-bottom:1px solid #333;display:flex;gap:7px;flex-wrap:wrap;">
+          <select onchange="S.orderType=this.value;render()" style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;">
+            <option value="table" ${S.orderType==="table"||S.orderType===T("onTable")?"selected":""}>${T("onTable")}</option>
+            <option value="takeaway" ${S.orderType==="takeaway"||S.orderType===T("takeaway")?"selected":""}>${T("takeaway")}</option>
+            <option value="delivery" ${S.orderType==="delivery"||S.orderType===T("delivery")?"selected":""}>${T("delivery")}</option>
+          </select>
+          ${S.orderType===T("onTable")||S.orderType==="Sur place"||S.orderType==="على الطاولة"?`<input placeholder="${T('tableNum')}" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:90px;padding:8px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;">`:''}
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:8px 12px;">
+          ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:50px 0;"><div style="font-size:40px;margin-bottom:10px;">🍔</div><div>${T("emptyCartMsg")}</div></div>`:''}
+          ${S.cart.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2a2a;">
+            <span style="font-size:22px;">${item.emoji}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}${item.size&&item.size!=="قطعة"?" ("+item.size+")":""}</div>
+              <div style="color:#888;font-size:12px;">${fmt(item.price)} × ${item.qty}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button onclick="removeFromCart('${item.cartId}')" style="width:28px;height:28px;border-radius:7px;border:1px solid #444;background:#2a2a2a;cursor:pointer;font-weight:700;font-size:16px;color:#c0391b;">−</button>
+              <span style="font-weight:700;min-width:20px;text-align:center;font-size:14px;">${item.qty}</span>
+              <button onclick="addToCart(${JSON.stringify(item).replace(/"/g,'&quot;').replace(/'/g,'&apos;')})" style="width:28px;height:28px;border-radius:7px;border:1px solid #444;background:#2a2a2a;cursor:pointer;font-weight:700;font-size:16px;color:#2d9e5a;">+</button>
+            </div>
+            <div style="font-weight:700;color:#f5a800;font-size:12px;min-width:65px;text-align:left;">${fmt(item.price*item.qty)}</div>
+          </div>`).join('')}
+        </div>
+        <div style="padding:8px 12px;border-top:1px solid #333;">
+          <textarea placeholder="${T('notes')}" rows="2" oninput="S.note=this.value" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #444;font-size:13px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
+        </div>
+        <div style="padding:12px;border-top:2px solid #f5a800;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:800;font-size:16px;">${T("total")}</span>
+            <span style="font-weight:800;font-size:20px;color:#f5a800;">${fmt(total)}</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="clearCart();S.posTab='menu';render()" style="flex:0.4;padding:12px 0;border-radius:10px;border:2px solid #444;background:transparent;cursor:pointer;font-weight:700;font-size:14px;color:#888;">🗑️</button>
+            <button onclick="placeOrder();S.posTab='menu'" ${!S.cart.length?"disabled":""} style="flex:1;padding:12px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:15px;">${T("confirmOrder")}</button>
+          </div>
+        </div>
+      </div>`}
+    </div>`;
+  }
+
+  // ── كمبيوتر: جنب بعض ──────────────────────────────
+  return`<div style="display:flex;height:calc(100vh - 100px);">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:10px 14px;background:#222;border-bottom:1px solid #333;">
+        <input placeholder="${T('search')}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
+      </div>
+      ${!S.search?`<div style="display:flex;gap:8px;padding:10px 14px;background:#1e1e1e;border-bottom:1px solid #333;overflow-x:auto;flex-shrink:0;">
+        ${Object.keys(MENU).map(cat=>`<button class="cat-btn" onclick="S.cat=\`${cat}\`;render()" style="background:${S.cat===cat?'#f5a800':'transparent'};color:${S.cat===cat?'#1a1a1a':'#f5a800'};">${cat}</button>`).join("")}
+      </div>`:''}
+      <div style="flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;align-content:start;">
+        ${items.map(item=>{
+          const sizes=Object.keys(item.prices),sz=sel[item.id];
+          const inCart=S.cart.filter(c=>c.id===item.id).reduce((s,c)=>s+c.qty,0);
+          return`<div class="menu-item ${inCart?'in-cart':''}" onclick="addToCart(${JSON.stringify(item).replace(/"/g,'&quot;')})">
+            ${inCart?`<div class="qty-badge">${inCart}</div>`:''}
+            <div style="font-size:26px;margin-bottom:5px;">${item.emoji}</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:2px;">${item.name}</div>
+            ${item.note?`<div style="font-size:10px;color:#888;margin-bottom:4px;line-height:1.3;">${item.note}</div>`:''}
+            ${sizes.length>1?`<div style="display:flex;gap:4px;margin-bottom:5px;flex-wrap:wrap;" onclick="event.stopPropagation()">
+              ${sizes.map(s=>`<button class="size-btn ${sz===s?'active':''}" onclick="event.stopPropagation();sel[${item.id}]='${s}';render()">${s}</button>`).join('')}
+            </div>`:''}
+            <div style="color:#f5a800;font-weight:800;font-size:13px;">${fmt(item.prices[sz])}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>
+    <div style="width:285px;background:#1e1e1e;border-right:1px solid #333;display:flex;flex-direction:column;">
+      <div style="padding:11px 14px;background:#f5a800;color:#1a1a1a;font-weight:800;font-size:14px;">${T("currentOrder")}</div>
+      <div style="padding:9px 12px;border-bottom:1px solid #333;display:flex;gap:7px;flex-wrap:wrap;">
+        <select onchange="S.orderType=this.value;render()" style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #444;font-size:12px;background:#2a2a2a;color:#fff;">
+          <option value="table" ${S.orderType==="table"||S.orderType===T("onTable")?"selected":""}>${T("onTable")}</option>
+          <option value="takeaway" ${S.orderType==="takeaway"||S.orderType===T("takeaway")?"selected":""}>${T("takeaway")}</option>
+          <option value="delivery" ${S.orderType==="delivery"||S.orderType===T("delivery")?"selected":""}>${T("delivery")}</option>
+        </select>
+        ${S.orderType===T("onTable")||S.orderType==="Sur place"||S.orderType==="على الطاولة"?`<input placeholder="${T('tableNum')}" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:78px;padding:7px 8px;border-radius:8px;border:1.5px solid #444;font-size:12px;background:#2a2a2a;color:#fff;">`:''}
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:7px 11px;">
+        ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:34px 0;"><div style="font-size:32px;margin-bottom:8px;">🍔</div><div style="font-size:12px;">${T("emptyCart")}</div></div>`:''}
+        ${S.cart.map(item=>`<div style="display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid #2a2a2a;">
+          <span style="font-size:16px;">${item.emoji}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.name}${item.size&&item.size!=="قطعة"?" ("+item.size+")":""}</div>
+            <div style="color:#888;font-size:11px;">${fmt(item.price)} × ${item.qty}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <button onclick="removeFromCart('${item.cartId}')" style="width:22px;height:22px;border-radius:5px;border:1px solid #444;background:#2a2a2a;cursor:pointer;font-weight:700;font-size:14px;color:#c0391b;">−</button>
+            <span style="font-weight:700;min-width:16px;text-align:center;font-size:12px;">${item.qty}</span>
+            <button onclick="addToCart(${JSON.stringify(item).replace(/"/g,'&quot;').replace(/'/g,'&apos;')})" style="width:22px;height:22px;border-radius:5px;border:1px solid #444;background:#2a2a2a;cursor:pointer;font-weight:700;font-size:14px;color:#2d9e5a;">+</button>
+          </div>
+          <div style="font-weight:700;color:#f5a800;font-size:11px;min-width:58px;text-align:left;">${fmt(item.price*item.qty)}</div>
+        </div>`).join('')}
+      </div>
+      <div style="padding:7px 11px;border-top:1px solid #333;">
+        <textarea placeholder="${T('notes')}" rows="2" oninput="S.note=this.value" style="width:100%;padding:7px 10px;border-radius:8px;border:1.5px solid #444;font-size:12px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
+      </div>
+      <div style="padding:11px 13px;border-top:2px solid #f5a800;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-weight:800;font-size:15px;">${T("total")}</span>
+          <span style="font-weight:800;font-size:18px;color:#f5a800;">${fmt(total)}</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="clearCart()" style="flex:0.4;padding:10px 0;border-radius:10px;border:2px solid #444;background:transparent;cursor:pointer;font-weight:700;font-size:13px;color:#888;">🗑️</button>
+          <button onclick="placeOrder()" ${!S.cart.length?"disabled":""} style="flex:1;padding:10px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:13px;">${T("confirmOrder")}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+
+function renderOrders(){
+  const pendingReqs=getPendingReqs();
+  const showRev=isAdmin()||hasPerm("viewRevenue");
+  const visibleOrders=hasPerm("viewAllOrders")?orders:orders.filter(o=>o.placedById===S.currentUser.id);
+
+  let html='<div style="padding:12px;overflow-y:auto;height:calc(100vh - 100px);">';
+
+  // Stats
+  html+=`<div style="display:grid;grid-template-columns:repeat(${showRev?3:2},1fr);gap:8px;margin-bottom:12px;">
+    <div class="card" style="text-align:center;padding:10px;"><div style="font-size:18px;">📦</div><div style="font-weight:800;font-size:15px;color:#f5a800;">${getTodayO().length}</div><div style="color:#888;font-size:10px;">طلبات اليوم</div></div>
+    ${showRev?`<div class="card" style="text-align:center;padding:10px;border-color:#2d9e5a;"><div style="font-size:18px;">💰</div><div style="font-weight:800;font-size:14px;color:#2d9e5a;">${fmt(getRevenue())}</div><div style="color:#888;font-size:10px;">إيرادات اليوم</div></div>`:''}
+    <div class="card" style="text-align:center;padding:10px;"><div style="font-size:18px;">⏳</div><div style="font-weight:800;font-size:15px;color:#f5a800;">${getPending()}</div><div style="color:#888;font-size:10px;">في الانتظار</div></div>
+  </div>`;
+
+  // طلبات تحتاج موافقة
+  if(isAdmin()&&pendingReqs.length){
+    html+=`<div style="background:#1a0e00;border:2px solid #f5a800;border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-weight:800;color:#f5a800;font-size:13px;margin-bottom:8px;">⚠️ ${T("needsApproval")} (${pendingReqs.length})</div>`;
+    pendingReqs.forEach(req=>{
+      const o=orders.find(x=>x.id===req.orderId);
+      if(!o)return;
+      html+=`<div style="background:#111;border-radius:8px;padding:9px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;">
+        <div>
+          <div style="font-size:11px;color:#f5a800;font-weight:700;">${req.type==="delete"?"🗑️ حذف":"❌ إلغاء"} — ${req.by}</div>
+          <div style="font-size:12px;font-weight:700;margin-top:2px;">${o.orderType==="على الطاولة"?"🪑 طاولة "+o.tableNum:o.orderType==="تيك أواي"?"🥡 تيك أواي":"🛵 ديلفري"} — ${fmt(o.total)}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="approveReq(${req.orderId},'${req.type}')" style="padding:6px 12px;border-radius:8px;border:none;background:#2d9e5a;color:#fff;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:12px;">✅</button>
+          <button onclick="rejectReq(${req.orderId},'${req.type}')" style="padding:6px 12px;border-radius:8px;border:none;background:#c0391b;color:#fff;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:12px;">❌</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  if(!visibleOrders.length){
+    html+='<div style="text-align:center;color:#555;padding:44px;background:#2a2a2a;border-radius:16px;"><div style="font-size:44px;">📋</div><div style="margin-top:10px;font-size:13px;">' + T('noOrders') + '</div></div>';
+  }
+
+  // كل طلب
+  const ST2={"جديد":{bg:"#2a1a00",border:"#f5a800",color:"#f5a800",icon:"🆕"},"قيد التنفيذ":{bg:"#001a2a",border:"#1a8fe0",color:"#1a8fe0",icon:"🔥"},"مكتمل":{bg:"#001a0a",border:"#2d9e5a",color:"#2d9e5a",icon:"✅"},"ملغي":{bg:"#1a0000",border:"#c0391b",color:"#c0391b",icon:"❌"}};
+  const SF=["جديد","قيد التنفيذ","مكتمل"];
+
+  visibleOrders.forEach(order=>{
+    const st=ST2[order.status]||ST2["جديد"];
+    const done=order.status===T('sDone')||order.status===T('sCancelled');
+    const next=SF[SF.indexOf(order.status)+1];
+    const myDel=delReqs.find(r=>r.orderId===order.id&&r.status==="pending");
+    const showAmt=showRev||order.placedById===S.currentUser.id;
+
+    html+=`<div style="background:#2a2a2a;border-radius:12px;border:1.5px solid ${myDel?"#f5a800":"#333"};margin-bottom:9px;overflow:hidden;">
+      <div style="padding:9px 12px;background:#1e1e1e;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span style="font-weight:800;font-size:13px;">${order.orderType===T("onTable")||order.orderType==="table"||order.orderType==="Sur place"||order.orderType==="على الطاولة"?"🪑 "+T("tableNum")+" "+order.tableNum:order.orderType===T("takeaway")||order.orderType==="takeaway"||order.orderType==="À emporter"||order.orderType==="تيك أواي"?"🥡 "+T("takeaway"):"🛵 "+T("delivery")}</span>
+          <span style="color:#555;font-size:11px;">${order.time}</span>
+          <span style="font-size:10px;color:#444;background:#2a2a2a;border-radius:5px;padding:1px 6px;">👤 ${order.placedBy}</span>
+        </div>
+        ${showAmt?`<span style="font-weight:800;color:#f5a800;font-size:14px;">${fmt(order.total)}</span>`:''}
+      </div>
+      <div style="padding:7px 12px;display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid #222;">
+        ${order.items.map(i=>`<span style="background:#1a1a1a;border-radius:6px;padding:2px 7px;font-size:11px;border:1px solid #333;">${i.emoji} ${i.name}${i.size&&i.size!=="قطعة"?" ("+i.size+")":""} ×${i.qty}</span>`).join('')}
+        ${order.note?`<span style="background:#2e2800;border-radius:6px;padding:2px 7px;font-size:11px;color:#aaa;border:1px solid #4a3a00;">📝 ${order.note}</span>`:''}
+      </div>
+      <div style="padding:9px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;">
+        <div style="background:${st.bg};border:2px solid ${st.border};border-radius:8px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;">
+          <span style="font-size:13px;">${st.icon}</span>
+          <span style="font-weight:800;font-size:12px;color:${st.color};">${order.status}</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${!done&&next?`<button onclick="nextStatus(${order.id})" style="padding:5px 10px;border-radius:7px;background:${ST2[next].bg};border:2px solid ${ST2[next].border};color:${ST2[next].color};cursor:pointer;font-family:Cairo,sans-serif;font-weight:800;font-size:11px;">${ST2[next].icon} ${next}</button>`:''}
+          ${isAdmin()&&!done?`<button onclick="adminCancel(${order.id})" style="padding:5px 8px;border-radius:7px;border:1.5px solid #5a2020;background:#2a1010;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:11px;color:#e55;">❌</button><button onclick="adminDelete(${order.id})" style="padding:5px 8px;border-radius:7px;border:1.5px solid #3a0000;background:#1a0000;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:11px;color:#a00;">🗑️</button>`:''}
+          ${!isAdmin()&&!done?myDel?`<span style="color:#f5a800;font-size:11px;padding:4px 8px;border-radius:6px;background:#2a1a00;border:1px solid #4a3a00;">⏳ انتظار</span>`:`<button onclick="requestCancel(${order.id})" style="padding:4px 8px;border-radius:6px;border:1px solid #4a2020;background:#1a0a0a;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:11px;color:#c55;">❌</button><button onclick="requestDelete(${order.id})" style="padding:4px 8px;border-radius:6px;border:1px solid #4a3a00;background:#1a1000;cursor:pointer;font-family:Cairo,sans-serif;font-weight:700;font-size:11px;color:#a87;">🗑️</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html+='</div>';
+  return html;
+}
+
+
+function renderExpenses(){
+  const canAdd=hasPerm("addExpenses");
+  const canView=hasPerm("viewExpenses");
+  if(!isAdmin()&&!canAdd&&!canView)return`<div style="display:flex;align-items:center;justify-content:center;height:calc(100vh - 100px);"><div style="text-align:center;color:#555;"><div style="font-size:52px;margin-bottom:12px;">🔒</div><div style="font-size:14px;">ليس لديك صلاحية المصروفات</div></div></div>`;
+
+  // Only admin sees admin tab
+  const showAdminTab=isAdmin();
+  const activeTab=showAdminTab?S.expTab:"daily";
+
+  // Summary cards
+  const adminTotal=totalExp("admin");
+  const dailyTotal=totalExp("daily");
+  const netProfit=totalRevenue()-adminTotal-dailyTotal;
+
+  // Filtered list
+  let listExp=[];
+  if(isAdmin()){
+    listExp=expenses.filter(e=>e.type===activeTab);
+  } else {
+    listExp=expenses.filter(e=>e.type==="daily");
+  }
+  const expByDate={};
+  listExp.forEach(e=>{if(!expByDate[e.date])expByDate[e.date]=[];expByDate[e.date].push(e);});
+  const sortedDates=Object.keys(expByDate).sort().reverse();
+
+  const af=S.adminExpForm, df=S.dailyExpForm;
+  const selAdminCat=ADMIN_EXP_CATS.find(c=>c.id===af.catId)||ADMIN_EXP_CATS[0];
+
+  return`<div style="padding:13px;overflow-y:auto;height:calc(100vh - 100px);">
+
+    <!-- ملخص أرقام -->
+    <div style="display:grid;grid-template-columns:repeat(${isAdmin()?4:2},1fr);gap:9px;margin-bottom:14px;">
+      ${isAdmin()?`
+      <div class="card" style="text-align:center;border-color:#7b3fa0;"><div style="font-size:18px;">👷</div><div style="font-weight:800;font-size:13px;color:#a55fd0;">${fmt(adminTotal)}</div><div style="color:#888;font-size:10px;">رواتب وثابت</div></div>
+      <div class="card" style="text-align:center;border-color:#c0391b;"><div style="font-size:18px;">🥩</div><div style="font-weight:800;font-size:13px;color:#c0391b;">${fmt(dailyTotal)}</div><div style="color:#888;font-size:10px;">مصروفات يومية</div></div>
+      <div class="card" style="text-align:center;border-color:#f5a800;"><div style="font-size:18px;">💸</div><div style="font-weight:800;font-size:13px;color:#f5a800;">${fmt(adminTotal+dailyTotal)}</div><div style="color:#888;font-size:10px;">إجمالي المصروفات</div></div>
+      <div class="card" style="text-align:center;border-color:#2d9e5a;"><div style="font-size:18px;">📊</div><div style="font-weight:800;font-size:13px;color:#2d9e5a;">${fmt(netProfit)}</div><div style="color:#888;font-size:10px;">صافي الربح</div></div>
+      `:`
+      <div class="card" style="text-align:center;border-color:#c0391b;"><div style="font-size:20px;">💸</div><div style="font-weight:800;font-size:14px;color:#c0391b;">${fmt(todayExp("daily"))}</div><div style="color:#888;font-size:11px;">مصروفات اليوم</div></div>
+      <div class="card" style="text-align:center;border-color:#f5a800;"><div style="font-size:20px;">📅</div><div style="font-weight:800;font-size:14px;color:#f5a800;">${fmt(dailyTotal)}</div><div style="color:#888;font-size:11px;">إجمالي اليومية</div></div>
+      `}
+    </div>
+
+    <!-- تابات: أدمن فقط يشوف الاثنين -->
+    ${showAdminTab?`
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="exp-tab" onclick="S.expTab='admin';render()" style="flex:1;border-color:#7b3fa0;background:${activeTab==='admin'?'#7b3fa0':'transparent'};color:${activeTab==='admin'?'#fff':'#a55fd0'};">
+        👑 مصروفات الأدمن<br><span style="font-size:10px;font-weight:400;">رواتب · إيجار · كهرباء · صيانة</span>
+      </button>
+      <button class="exp-tab" onclick="S.expTab='daily';render()" style="flex:1;border-color:#c0391b;background:${activeTab==='daily'?'#c0391b':'transparent'};color:${activeTab==='daily'?'#fff':'#c0391b'};">
+        📦 مصروفات يومية<br><span style="font-size:10px;font-weight:400;">مواد خام · بنزين · عبوات</span>
+      </button>
+    </div>`:""}
+
+    <!-- ═══ فورم مصروفات الأدمن ═══ -->
+    ${isAdmin()&&activeTab==="admin"?`
+    <div style="background:#1a001a;border:2px solid #7b3fa0;border-radius:14px;padding:15px;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:14px;color:#a55fd0;margin-bottom:12px;">👑 تسجيل مصروف ثابت</div>
+      
+      <!-- اختيار الفئة - أزرار كبيرة -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:#888;margin-bottom:6px;">نوع المصروف</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;">
+          ${ADMIN_EXP_CATS.map(cat=>`
+            <button onclick="S.adminExpForm.catId='${cat.id}';render()" style="padding:8px 6px;border-radius:9px;border:2px solid ${af.catId===cat.id?'#7b3fa0':'#333'};background:${af.catId===cat.id?'#2a0a2a':'#1a1a1a'};cursor:pointer;font-family:Cairo,sans-serif;font-size:11px;font-weight:700;color:${af.catId===cat.id?'#a55fd0':'#888'};text-align:center;">
+              <div style="font-size:18px;margin-bottom:3px;">${cat.icon}</div>
+              ${cat.label.replace(/^[^ ]+ /,"")}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- اسم الموظف — فقط لو Salary -->
+      ${selAdminCat.hasSalaryPicker?`
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:#888;margin-bottom:5px;">👷 اختر الموظف</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          ${employees.filter(e=>e.active).map(e=>`
+            <button onclick="S.adminExpForm.employeeName='${e.name}';render()" style="padding:7px 14px;border-radius:9px;border:2px solid ${af.employeeName===e.name?'#f5a800':'#444'};background:${af.employeeName===e.name?'#2a1a00':'#1a1a1a'};cursor:pointer;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;color:${af.employeeName===e.name?'#f5a800':'#888'};">
+              👤 ${e.name}
+            </button>
+          `).join("")}
+        </div>
+        ${af.employeeName?`<div style="font-size:11px;color:#f5a800;font-weight:700;">✓ تم اختيار: ${af.employeeName}</div>`:""}
+      </div>`:""}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">التاريخ</div><input class="inp" type="date" value="${af.date}" oninput="S.adminExpForm.date=this.value"></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">المبلغ (${CURRENCY}) *</div><input class="inp" type="number" placeholder="0" value="${af.amount}" oninput="S.adminExpForm.amount=this.value" style="font-size:14px;font-weight:700;"></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">طريقة الدفع</div><select class="inp" onchange="S.adminExpForm.pay=this.value">${["كاش","تحويل","بطاقة","شيك"].map(p=>`<option ${af.pay===p?"selected":""}>${p}</option>`).join("")}</select></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">ملاحظات</div><input class="inp" placeholder="اختياري" value="${af.notes}" oninput="S.adminExpForm.notes=this.value"></div>
+      </div>
+      ${S.adminExpErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:8px;font-weight:700;">${S.adminExpErr}</div>`:""}
+      <button onclick="saveAdminExp()" style="width:100%;padding:11px 0;border-radius:10px;border:none;background:#7b3fa0;color:#fff;font-family:Cairo,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">💾 تسجيل المصروف</button>
+    </div>`:""}
+
+    <!-- ═══ فورم مصروفات يومية ═══ -->
+    ${activeTab==="daily"&&(isAdmin()||canAdd)?`
+    <div style="background:#1a0000;border:2px solid #c0391b;border-radius:14px;padding:15px;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:14px;color:#e06050;margin-bottom:12px;">📦 تسجيل مصروف يومي</div>
+      
+      <!-- اختيار الفئة اليومية -->
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:#888;margin-bottom:6px;">نوع المصروف اليومي</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;">
+          ${DAILY_EXP_CATS.map(cat=>`
+            <button onclick="S.dailyExpForm.catId='${cat.id}';render()" style="padding:8px 6px;border-radius:9px;border:2px solid ${df.catId===cat.id?'#c0391b':'#333'};background:${df.catId===cat.id?'#2a0a00':'#1a1a1a'};cursor:pointer;font-family:Cairo,sans-serif;font-size:11px;font-weight:700;color:${df.catId===cat.id?'#e06050':'#888'};text-align:center;">
+              <div style="font-size:18px;margin-bottom:3px;">${cat.icon}</div>
+              ${cat.label.replace(/^[^ ]+ /,"")}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">التاريخ</div><input class="inp" type="date" value="${df.date}" oninput="S.dailyExpForm.date=this.value"></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">البند *</div><input class="inp" placeholder="مثال: لحم بقري 2 كيلو" value="${df.item}" oninput="S.dailyExpForm.item=this.value"></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">المبلغ (${CURRENCY}) *</div><input class="inp" type="number" placeholder="0" value="${df.amount}" oninput="S.dailyExpForm.amount=this.value" style="font-size:14px;font-weight:700;"></div>
+        <div><div style="font-size:11px;color:#888;margin-bottom:4px;">طريقة الدفع</div><select class="inp" onchange="S.dailyExpForm.pay=this.value">${["كاش","تحويل","بطاقة","ديون"].map(p=>`<option ${df.pay===p?"selected":""}>${p}</option>`).join("")}</select></div>
+      </div>
+      <div style="margin-bottom:10px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">ملاحظات</div><input class="inp" placeholder="اختياري" value="${df.notes}" oninput="S.dailyExpForm.notes=this.value"></div>
+      ${S.dailyExpErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:8px;font-weight:700;">${S.dailyExpErr}</div>`:""}
+      <button onclick="saveDailyExp()" style="width:100%;padding:11px 0;border-radius:10px;border:none;background:#c0391b;color:#fff;font-family:Cairo,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">💾 تسجيل المصروف اليومي</button>
+    </div>`:""}
+
+    ${activeTab==="daily"&&!isAdmin()&&!canAdd&&canView?`<div style="background:#111;border:1px solid #222;border-radius:9px;padding:9px 13px;margin-bottom:12px;font-size:12px;color:#555;">👁️ وضع العرض فقط</div>`:""}
+
+    <!-- قائمة المصروفات -->
+    ${sortedDates.length===0?`<div style="text-align:center;color:#555;padding:36px;background:#2a2a2a;border-radius:14px;"><div style="font-size:38px;">${activeTab==="admin"?"👑":"📦"}</div><div style="margin-top:10px;font-size:13px;">لا توجد مصروفات ${activeTab==="admin"?"ثابتة":"يومية"} مسجّلة</div></div>`:""}
+
+    ${sortedDates.map(date=>{
+      const dayExps=expByDate[date];
+      const dayTotal=dayExps.reduce((s,e)=>s+(+e.amount||0),0);
+      const borderClr=activeTab==="admin"?"#7b3fa0":"#c0391b";
+      const totalClr=activeTab==="admin"?"#a55fd0":"#c0391b";
+      return`<div style="background:#2a2a2a;border-radius:12px;border:1px solid #333;margin-bottom:10px;overflow:hidden;">
+        <div style="padding:9px 13px;background:#1e1e1e;border-bottom:1px solid #333;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-weight:700;font-size:13px;color:#ccc;">📅 ${date}</span>
+          <span style="font-weight:800;font-size:13px;color:${totalClr};">${fmt(dayTotal)}</span>
+        </div>
+        ${dayExps.map(e=>`<div style="padding:9px 13px;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+              <span style="font-size:15px;">${[...ADMIN_EXP_CATS,...DAILY_EXP_CATS].find(c=>c.id===e.catId)?.icon||"📌"}</span>
+              <span style="font-weight:700;font-size:13px;">${e.item}</span>
+              ${e.employeeName?`<span style="background:#2a1a00;border:1px solid #f5a800;border-radius:6px;padding:1px 7px;font-size:10px;color:#f5a800;">👤 ${e.employeeName}</span>`:""}
+            </div>
+            <div style="font-size:10px;color:#555;margin-right:21px;">${e.catLabel} · ${e.pay} · ${e.addedBy||"—"}${e.notes?" · "+e.notes:""}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;">
+            <span style="font-weight:800;color:${totalClr};font-size:14px;">${fmt(e.amount)}</span>
+            ${isAdmin()?`<button onclick="deleteExpense(${e.id})" style="background:#3a1010;border:1px solid #5a2020;border-radius:6px;color:#e55;cursor:pointer;padding:4px 9px;font-size:11px;font-family:Cairo,sans-serif;">🗑️</button>`:""}
+          </div>
+        </div>`).join("")}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function renderEmployees(){
+  const f=S.empForm;
+  return`<div style="padding:14px;overflow-y:auto;height:calc(100vh - 100px);">
+    <!-- فورم -->
+    <div style="background:#1e1e1e;border:2px solid ${f.name?'#f5a800':'#333'};border-radius:14px;padding:15px;margin-bottom:16px;">
+      <div style="font-weight:800;font-size:14px;color:#f5a800;margin-bottom:12px;">${f.id?"✏️ تعديل بيانات الموظف":"➕ إضافة موظف جديد"}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="flex:1;min-width:140px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">اسم الموظف</div><input class="inp" placeholder="مثال: أحمد" value="${f.name}" oninput="S.empForm.name=this.value"></div>
+        <div style="flex:1;min-width:140px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">كلمة المرور</div><input class="inp" placeholder="مثال: 1234" value="${f.password}" oninput="S.empForm.password=this.value" type="text" inputmode="numeric"></div>
+      </div>
+      <div style="background:#111;border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:12px;color:#f5a800;margin-bottom:10px;">🔐 صلاحيات الموظف</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${Object.entries(PERMS_DEF).map(([key,label])=>`
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1.5px solid ${f.perms[key]?'#f5a800':'#333'};background:${f.perms[key]?'#2a1a00':'#1a1a1a'};">
+              <input type="checkbox" class="perm-check" ${f.perms[key]?"checked":""} onchange="togglePerm('${key}')">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:${f.perms[key]?'#f5a800':'#888'};">${label}</div>
+                ${key==="addExpenses"?`<div style="font-size:10px;color:#555;margin-top:1px;">مواد خام · بنزين · متفرقات</div>`:""}
+              </div>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+      ${S.empFormErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:8px;font-weight:700;">${S.empFormErr}</div>`:""}
+      <div style="display:flex;gap:8px;">
+        <button onclick="S.empForm={id:null,name:'',password:'',perms:{...DEFAULT_PERMS}};S.empFormErr='';render()" class="btn-dark" style="font-size:12px;padding:8px 14px;">مسح</button>
+        <button onclick="saveEmp()" class="btn-gold" style="font-size:12px;padding:8px 20px;">${f.id?"💾 حفظ التعديل":"➕ إضافة موظف"}</button>
+      </div>
+    </div>
+
+    ${employees.length===0?`<div style="text-align:center;color:#555;padding:28px;font-size:13px;">لا يوجد موظفين</div>`:""}
+    ${employees.map(e=>{
+      const permsActive=Object.entries(e.perms||{}).filter(([,v])=>v).map(([k])=>PERMS_DEF[k]);
+      return`<div class="card" style="margin-bottom:10px;border-color:${e.active?"#333":"#2a1010"};">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:11px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:${e.active?"#2a2800":"#2a1010"};border:2px solid ${e.active?"#f5a800":"#5a2020"};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${e.active?"👤":"🚫"}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:${e.active?"#fff":"#555"};">${e.name}</div>
+              <div style="font-size:11px;color:#555;">كلمة المرور: <b style="color:#777;">${e.password}</b> · ${e.active?"🟢 مفعّل":"🔴 موقوف"}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">
+                ${permsActive.length?permsActive.map(p=>`<span style="background:#2a1a00;border:1px solid #f5a800;border-radius:5px;padding:1px 7px;font-size:10px;color:#f5a800;">${p}</span>`).join(""):`<span style="font-size:10px;color:#444;">بدون صلاحيات إضافية</span>`}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="openEmpForm(${JSON.stringify(e).replace(/"/g,'&quot;')})" style="padding:6px 11px;border-radius:8px;border:1.5px solid #444;background:transparent;cursor:pointer;font-family:Cairo,sans-serif;font-size:11px;color:#aaa;">✏️ تعديل</button>
+            <button onclick="toggleEmp(${e.id})" style="padding:6px 11px;border-radius:8px;border:1.5px solid ${e.active?"#5a2020":"#2a4a20"};background:${e.active?"#1a0a0a":"#0a1a0a"};cursor:pointer;font-family:Cairo,sans-serif;font-size:11px;color:${e.active?"#e55":"#5c5"};">${e.active?"إيقاف":"تفعيل"}</button>
+            <button onclick="deleteEmp(${e.id})" style="padding:6px 11px;border-radius:8px;border:1.5px solid #3a0000;background:#1a0000;cursor:pointer;font-family:Cairo,sans-serif;font-size:11px;color:#a00;">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+
+function render(){
+  if(S.screen==="login"){document.getElementById("app").innerHTML=renderLogin();return;}
+  const pendingCount=getPendingReqs().length;
+  const canSeeExp=isAdmin()||hasPerm("viewExpenses")||hasPerm("addExpenses");
+  document.getElementById("app").innerHTML=`
+    <div style="background:#111;padding:9px 13px;" dir="${getLang().dir}";display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;border-bottom:2px solid #f5a800;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="background:#f5a800;border-radius:9px;padding:5px 9px;font-size:18px;">⏱️</div>
+        <div><div style="font-weight:800;font-size:14px;color:#f5a800;letter-spacing:1px;">BURGER TIME</div>
+        <div style="font-size:9px;color:#555;">${new Date().toLocaleDateString("ar-DZ",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div></div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:7px;background:#2a2a2a;border-radius:9px;padding:6px 11px;border:1.5px solid ${isAdmin()?'#f5a800':'#3a3a3a'};">
+          <span>${isAdmin()?"👑":"👤"}</span>
+          <span style="font-weight:700;font-size:12px;color:${isAdmin()?'#f5a800':'#fff'};">${S.currentUser.name}</span>
+          <button onclick="logout()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:10px;font-family:Cairo,sans-serif;">${T("logout")}</button>
+        </div>
+        <button class="tab-btn" onclick="S.view='pos';render()" style="background:${S.view==="pos"?"#f5a800":"transparent"};color:${S.view==="pos"?"#1a1a1a":"#f5a800"};">${T("cashier")}</button>
+        <button class="tab-btn" onclick="S.view='orders';render()" style="background:${S.view==="orders"?"#f5a800":"transparent"};color:${S.view==="orders"?"#1a1a1a":"#f5a800"};position:relative;">
+          📋 الطلبات${isAdmin()&&pendingCount?`<span style="position:absolute;top:-7px;left:-7px;background:#c0391b;color:#fff;border-radius:20px;width:17px;height:17px;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">${pendingCount}</span>`:""}
+        </button>
+        ${canSeeExp?`<button class="tab-btn" onclick="S.view='expenses';render()" style="background:${S.view==="expenses"?"#c0391b":"transparent"};color:${S.view==="expenses"?"#fff":"#c0391b"};border-color:#c0391b;">${T("expenses")}</button>`:""}
+        ${isAdmin()?`<button class="tab-btn" onclick="S.view='employees';openEmpForm(null)" style="background:${S.view==="employees"?"#f5a800":"transparent"};color:${S.view==="employees"?"#1a1a1a":"#f5a800"};">${T("employees")}</button>
+`:""}
+      </div>
+    </div>
+    <div style="background:#0d0d0d;padding:5px 13px;display:flex;gap:16px;font-size:11px;color:#444;flex-wrap:wrap;border-bottom:1px solid #1e1e1e;" dir="${getLang().dir}">
+      <span>📦 اليوم: <b style="color:#f5a800;">${getTodayO().length}</b></span>
+      ${isAdmin()||hasPerm("viewRevenue")?`<span>💰 الإيرادات: <b style="color:#2d9e5a;">${fmt(getRevenue())}</b></span>`:""}
+      ${isAdmin()?`<span>👑 ثابت: <b style="color:#a55fd0;">${fmt(todayExp("admin"))}</b></span><span>📦 يومي: <b style="color:#c0391b;">${fmt(todayExp("daily"))}</b></span>`:""}
+      <span>⏳ انتظار: <b style="color:#f5a800;">${getPending()}</b></span>
+      
+    </div>
+    ${S.view==="pos"?renderPOS():S.view==="orders"?renderOrders():S.view==="expenses"?renderExpenses():renderEmployees()}
+
+    ${S.showConfirm?`<div class="overlay" onclick="if(event.target===this){S.showConfirm=false;render();}">
+      <div style="background:#1e1e1e;border:2px solid #f5a800;border-radius:16px;padding:26px;text-align:center;max-width:280px;">
+        <div style="font-size:48px;margin-bottom:10px;">✅</div>
+        <div style="font-weight:800;font-size:16px;color:#f5a800;margin-bottom:6px;">${T("orderDone")}</div>
+        <div style="color:#666;font-size:12px;margin-bottom:16px;">${T("followOrders")}</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="S.showConfirm=false;S.view='orders';render()" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #333;background:transparent;color:#aaa;font-family:Cairo,sans-serif;font-weight:700;font-size:12px;cursor:pointer;">${T('orders')}</button>
+          <button onclick="S.showConfirm=false;render()" style="flex:1.5;padding:9px 0;border-radius:10px;border:none;background:#f5a800;color:#1a1a1a;font-family:Cairo,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">${T("newOrder")}</button>
+        </div>
+      </div>
+    </div>`:""}
+
+
+    ${S.notif?`<div class="notif" style="border:2px solid ${S.notif.color};color:${S.notif.color};">${S.notif.msg}</div>`:""}
+  `;
+}
+render();
+</script>
+</body>
+</html>
