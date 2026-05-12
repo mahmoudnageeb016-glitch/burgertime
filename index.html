@@ -130,146 +130,68 @@ const MENU = {
 
 function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
 
-// ══════════════════════════════════════════════
-// نظام اللغتين — Arabic / French
-// الأدمن يختار، الموظف فرنساوي دايماً
-// ══════════════════════════════════════════════
-var LANG = {
+var _adminLang = localStorage.getItem("bt_admin_lang") || "ar";
+
+// T() - translate key based on role and admin preference
+var _T = {
   ar: {
-    dir:"rtl",
-    appTitle:"نظام الكاشير",
-    chooseAccount:"اختر حسابك للدخول",
-    adminDesc:L.adminDesc,
-    empDesc:L.empDesc,
-    enterPin:"أدخل الكود السري (4 أرقام)",
-    adminLogin:"دخول الأدمن",
-    enterPass:"أدخل كلمة المرور",
-    password:"كلمة المرور",
-    wrongPass:"❌ كلمة المرور غلط",
-    wrongPin:"❌ كود خاطئ",
-    loginBtn:"دخول ✓",
-    back:"رجوع",
-    cashier:"🛒 الكاشير",
-    orders:"📋 الطلبات",
-    expenses:"💸 المصروفات",
-    employees:"👥 موظفين",
-    logout:"خروج",
-    search:"🔍 ابحث عن صنف...",
-    onTable:"على الطاولة",
-    takeaway:"تيك أواي",
-    delivery:"ديلفري",
-    tableNum:"رقم الطاولة",
-    notes:"📝 ملاحظات...",
-    total:"الإجمالي",
-    clearCart:"🗑️",
-    confirmOrder:"✅ تأكيد الطلب",
-    currentOrder:"🛒 الطلب الحالي",
-    emptyCart:"اختر الأصناف من القائمة",
-    menuTab:"🍔 القائمة",
-    cartTab:"🛒 الطلب",
-    emptyCartMsg:"السلة فاضية",
-    viewCart:"🛒 عرض الطلب",
-    sNew:"جديد", sProgress:"قيد التنفيذ", sDone:"مكتمل", sCancelled:"ملغي",
-    todayOrders:T("todayOrders"), revenue:T("revenue"), pending:T("pending"),
-    noOrders:"لا توجد طلبات",
-    newOrder:"+ طلب جديد",
-    orderDone:"تم تسجيل الطلب!",
-    followOrders:"تابعه من صفحة الطلبات",
-    goOrders:"📋 الطلبات",
+    chooseAcc:"اختر حسابك للدخول", adminDesc:"كود سري · صلاحيات كاملة",
+    empDesc:"موظف — كلمة مرور", cashier:"🛒 الكاشير", orders:"📋 الطلبات",
+    expenses:"💸 المصروفات", employees:"👥 موظفين", logout:"خروج",
+    onTable:"على الطاولة", takeaway:"تيك أواي", delivery:"ديلفري",
+    tableNum:"رقم الطاولة", confirmOrder:"✅ تأكيد الطلب",
+    currentOrder:"🛒 الطلب الحالي", emptyCart:"اختر الأصناف من القائمة",
+    total:"الإجمالي", menuTab:"🍔 القائمة", cartTab:"🛒 الطلب",
+    orderDone:"تم تسجيل الطلب!", newOrder:"+ طلب جديد",
+    goOrders:"📋 الطلبات", followOrders:"تابعه من صفحة الطلبات",
+    todayOrders:T('todayOrders'), revenue:T('revenue'), pending:T('pending'),
+    noOrders:"لا توجد طلبات", langBtn:"🇫🇷 Français",
+    sNew:"جديد", sProg:"قيد التنفيذ", sDone:"مكتمل", sCanc:"ملغي",
+    welcome:"أهلاً", enterPass:"أدخل كلمة المرور", loginBtn:"دخول ✓",
+    back:"رجوع", adminLogin:"دخول الأدمن", enterPin:"الكود السري (4 أرقام)",
+    wrongPin:"❌ كود خاطئ", wrongPass:"❌ كلمة المرور غلط",
+    needsApproval:"تحتاج موافقتك", approveBtn:"✅ موافقة", rejectBtn:"❌ رفض",
     cancelBtn:"❌ إلغاء", deleteBtn:"🗑️ حذف",
     reqCancel:"❌ طلب إلغاء", reqDelete:"🗑️ طلب حذف",
-    waitAdmin:"⏳ انتظار الأدمن",
-    approveBtn:"✅ موافقة", rejectBtn:"❌ رفض",
-    needsApproval:"تحتاج موافقتك",
-    syncOk:T("syncOk"),
-    syncBusy:"⏳ جاري الرفع...",
-    langBtn:"🇫🇷 Français",
-    welcomeMsg:"أهلاً",
-    todayLabel:"اليوم:",
-    revenueLabel:"الإيرادات:",
-    pendingLabel:"انتظار:",
+    waitAdmin:"⏳ انتظار الأدمن", syncOk:"✅ متزامن", dir:"rtl",
+    emptyCartMsg:"السلة فاضية", viewCart:"🛒 عرض الطلب",
   },
   fr: {
-    dir:"ltr",
-    appTitle:"Caisse",
-    chooseAccount:"Choisissez votre compte",
-    adminDesc:"Code secret · Accès complet",
-    empDesc:"Employé — Mot de passe",
-    enterPin:"Code secret (4 chiffres)",
-    adminLogin:"Connexion Admin",
-    enterPass:"Entrez le mot de passe",
-    password:"Mot de passe",
-    wrongPass:"❌ Mot de passe incorrect",
-    wrongPin:"❌ Code incorrect",
-    loginBtn:"Connexion ✓",
-    back:"Retour",
-    cashier:"🛒 Caisse",
-    orders:"📋 Commandes",
-    expenses:"💸 Dépenses",
-    employees:"👥 Employés",
-    logout:"Déconnexion",
-    search:"🔍 Rechercher...",
-    onTable:"Sur place",
-    takeaway:"À emporter",
-    delivery:"Livraison",
-    tableNum:"N° Table",
-    notes:"📝 Notes...",
-    total:"TOTAL",
-    clearCart:"🗑️",
-    confirmOrder:"✅ Confirmer",
-    currentOrder:"🛒 Commande en cours",
-    emptyCart:"Sélectionnez des articles",
-    menuTab:"🍔 Menu",
-    cartTab:"🛒 Panier",
-    emptyCartMsg:"Panier vide",
-    viewCart:"🛒 Voir le panier",
-    sNew:"Nouveau", sProgress:"En cours", sDone:"Terminé", sCancelled:"Annulé",
-    todayOrders:"Commandes auj.", revenue:"Recettes du jour", pending:"En attente",
-    noOrders:"Aucune commande",
-    newOrder:"+ Nouvelle commande",
-    orderDone:"Commande enregistrée!",
-    followOrders:"Voir dans Commandes",
-    goOrders:"📋 Commandes",
+    chooseAcc:"Choisissez votre compte", adminDesc:"Code secret · Accès complet",
+    empDesc:"Employé — Mot de passe", cashier:"🛒 Caisse", orders:"📋 Commandes",
+    expenses:"💸 Dépenses", employees:"👥 Employés", logout:"Déconnexion",
+    onTable:"Sur place", takeaway:"À emporter", delivery:"Livraison",
+    tableNum:"N° Table", confirmOrder:"✅ Confirmer",
+    currentOrder:"🛒 Commande en cours", emptyCart:"Sélectionnez des articles",
+    total:"TOTAL", menuTab:"🍔 Menu", cartTab:"🛒 Panier",
+    orderDone:"Commande enregistrée!", newOrder:"+ Nouvelle commande",
+    goOrders:"📋 Commandes", followOrders:"Voir dans Commandes",
+    todayOrders:"Commandes auj.", revenue:"Recettes", pending:"En attente",
+    noOrders:"Aucune commande", langBtn:"🇸🇦 العربية",
+    sNew:"Nouveau", sProg:"En cours", sDone:"Terminé", sCanc:"Annulé",
+    welcome:"Bonjour", enterPass:"Entrez le mot de passe", loginBtn:"Connexion ✓",
+    back:"Retour", adminLogin:"Connexion Admin", enterPin:"Code secret (4 chiffres)",
+    wrongPin:"❌ Code incorrect", wrongPass:"❌ Mot de passe incorrect",
+    needsApproval:"Approbations requises", approveBtn:"✅ Approuver", rejectBtn:"❌ Refuser",
     cancelBtn:"❌ Annuler", deleteBtn:"🗑️ Supprimer",
-    reqCancel:"❌ Annulation", reqDelete:"🗑️ Suppression",
-    waitAdmin:"⏳ En attente admin",
-    approveBtn:"✅ Approuver", rejectBtn:"❌ Refuser",
-    needsApproval:"Approbations requises",
-    syncOk:"✅ Sync Sheets OK",
-    syncBusy:"⏳ Sync en cours...",
-    langBtn:"🇸🇦 العربية",
-    welcomeMsg:"Bonjour",
-    todayLabel:"Auj:",
-    revenueLabel:"Recettes:",
-    pendingLabel:"Attente:",
+    reqCancel:"❌ Annuler", reqDelete:"🗑️ Supprimer",
+    waitAdmin:"⏳ En attente admin", syncOk:"✅ Sync OK", dir:"ltr",
+    emptyCartMsg:"Panier vide", viewCart:"🛒 Voir le panier",
   }
 };
 
 function getLang() {
-  // الموظف دايماً فرنساوي، الأدمن يختار
-  if (S.currentUser && S.currentUser.role !== "admin") return LANG.fr;
-  var saved = localStorage.getItem("bt_lang") || "ar";
-  return LANG[saved];
+  // موظف = دايماً فرنساوي / أدمن = يختار
+  if (S.currentUser && S.currentUser.role !== "admin") return _T.fr;
+  return _T[_adminLang] || _T.ar;
 }
-function T(key) { return getLang()[key] || key; }
+function T(k) { var l=getLang(); return l[k]||k; }
 function toggleLang() {
-  var cur = localStorage.getItem("bt_lang") || "ar";
-  localStorage.setItem("bt_lang", cur === "ar" ? "fr" : "ar");
+  _adminLang = _adminLang==="ar"?"fr":"ar";
+  localStorage.setItem("bt_admin_lang",_adminLang);
   render();
 }
 
-// Fix status arrays to use language
-function getStatusFlow() {
-  return [T("sNew"), T("sProgress"), T("sDone")];
-}
-function getStatusStyle(status) {
-  var styles = {};
-  styles[T("sNew")]      = {bg:"#2a1a00", border:"#f5a800", color:"#f5a800", icon:"🆕"};
-  styles[T("sProgress")] = {bg:"#001a2a", border:"#1a8fe0", color:"#1a8fe0", icon:"🔥"};
-  styles[T("sDone")]     = {bg:"#001a0a", border:"#2d9e5a", color:"#2d9e5a", icon:"✅"};
-  styles[T("sCancelled")]= {bg:"#1a0000", border:"#c0391b", color:"#c0391b", icon:"❌"};
-  return styles[status] || {bg:"#2a1a00", border:"#f5a800", color:"#f5a800", icon:"🆕"};
-}
 
 function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
@@ -369,7 +291,7 @@ let S={
   screen:"login", currentUser:null,
   loginStep:"select", loginTarget:null,
   pinVal:"", pinErr:"", empPassVal:"", empPassErr:"",
-  cat:"🍔 سمش برجر", cart:[], tableNum:"", orderType:"على الطاولة",
+  cat:"🍔 سمش برجر", cart:[], tableNum:"", orderType:T("onTable")||"على الطاولة",
   view:"pos", search:"", note:"", showConfirm:false,
 
   // Expenses
@@ -396,10 +318,10 @@ const isAdmin  = ()=>S.currentUser?.role==="admin";
 const hasPerm  = p=>isAdmin()||(S.currentUser?.perms?.[p]===true);
 const getTotal = ()=>S.cart.reduce((s,c)=>s+c.price*c.qty,0);
 const getTodayO= ()=>orders.filter(o=>o.date===today());
-const getRevenue=()=>getTodayO().filter(o=>o.status!==T('sCancelled')).reduce((s,o)=>s+o.total,0);
+const getRevenue=()=>getTodayO().filter(o=>o.status!==T('sCanc')).reduce((s,o)=>s+o.total,0);
 const getPending=()=>orders.filter(o=>o.status==="جديد").length;
 const getPendingReqs=()=>delReqs.filter(r=>r.status==="pending");
-const totalRevenue=()=>orders.filter(o=>o.status!==T('sCancelled')).reduce((s,o)=>s+o.total,0);
+const totalRevenue=()=>orders.filter(o=>o.status!==T('sCanc')).reduce((s,o)=>s+o.total,0);
 const totalExp = type=>expenses.filter(e=>!type||e.type===type).reduce((s,e)=>s+(+e.amount||0),0);
 const todayExp = type=>expenses.filter(e=>e.date===todayISO()&&(!type||e.type===type)).reduce((s,e)=>s+(+e.amount||0),0);
 const getCatLabel = id=>[...ADMIN_EXP_CATS,...DAILY_EXP_CATS].find(c=>c.id===id)?.label||id;
@@ -454,33 +376,32 @@ function placeOrder(){
 
 function renderLogin(){
   const activeEmps=employees.filter(e=>e.active);
-  if(S.loginStep==="pin")return`<div class="overlay" style="position:fixed;background:#1a1a1a;" dir="${getLang().dir}"><div style="text-align:center;max-width:310px;width:90%;">
-    <div style="margin-bottom:22px;"><div style="font-size:32px;">👑</div><div style="font-weight:800;font-size:18px;color:#f5a800;margin-top:6px;">${T("adminLogin")}</div><div style="font-size:12px;color:#555;margin-top:4px;">${T("enterPin")}</div></div>
+  if(S.loginStep==="pin")return`<div class="overlay" style="position:fixed;background:#1a1a1a;"><div style="text-align:center;max-width:310px;width:90%;">
+    <div style="margin-bottom:22px;"><div style="font-size:32px;">👑</div><div style="font-weight:800;font-size:18px;color:#f5a800;margin-top:6px;">${T('adminLogin')}</div><div style="font-size:12px;color:#555;margin-top:4px;">${T('enterPin')}</div></div>
     <div style="margin-bottom:16px;">${[0,1,2,3].map(i=>`<span class="pin-dot ${i<S.pinVal.length?'filled':''}"></span>`).join("")}</div>
     ${S.pinErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:10px;font-weight:700;">${S.pinErr}</div>`:""}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
       ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-btn" onclick="pinPress('${n}')">${n}</button>`).join("")}
       <button class="pin-btn" onclick="pinBack()" style="color:#c0391b;">⌫</button>
       <button class="pin-btn" onclick="pinPress('0')">0</button>
-      <button class="pin-btn" onclick="S.loginStep='select';render()" style="color:#888;font-size:12px;">رجوع</button>
+      <button class="pin-btn" onclick="S.loginStep='select';render()" style="color:#888;font-size:12px;">${T('back')}</button>
     </div>
   </div></div>`;
 
-  if(S.loginStep==="emppass"){const e=S.loginTarget;return`<div class="overlay" style="position:fixed;background:#1a1a1a;" dir="${getLang().dir}"><div style="text-align:center;max-width:320px;width:90%;">
+  if(S.loginStep==="emppass"){const e=S.loginTarget;return`<div class="overlay" style="position:fixed;background:#1a1a1a;"><div style="text-align:center;max-width:320px;width:90%;">
     <div style="width:58px;height:58px;border-radius:50%;background:#f5a800;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">👤</div>
-    <div style="font-weight:800;font-size:18px;margin-bottom:4px;">${getLang().welcomeMsg}, ${e.name}</div>
-    <div style="font-size:12px;color:#555;margin-bottom:16px;">${T("enterPass")}</div>
-    <input class="inp" type="password" placeholder="${T('password')}" value="${S.empPassVal}" oninput="S.empPassVal=this.value" onkeydown="if(event.key==='Enter')checkEmpPass()" style="margin-bottom:10px;font-size:18px;letter-spacing:4px;text-align:center;">
+    <div style="font-weight:800;font-size:18px;margin-bottom:4px;">${T('welcome')}, ${e.name}</div>
+    <div style="font-size:12px;color:#555;margin-bottom:16px;">${T('enterPass')}</div>
+    <input class="inp" type="password" placeholder="كلمة المرور" value="${S.empPassVal}" oninput="S.empPassVal=this.value" onkeydown="if(event.key==='Enter')checkEmpPass()" style="margin-bottom:10px;font-size:18px;letter-spacing:4px;text-align:center;">
     ${S.empPassErr?`<div style="color:#c0391b;font-size:12px;margin-bottom:8px;font-weight:700;">${S.empPassErr}</div>`:""}
-    <div style="display:flex;gap:8px;"><button class="btn-dark" onclick="S.loginStep='select';render()" style="flex:1;">${T("back")}</button><button class="btn-gold" onclick="checkEmpPass()" style="flex:2;">${T("loginBtn")}</button></div>
+    <div style="display:flex;gap:8px;"><button class="btn-dark" onclick="S.loginStep='select';render()" style="flex:1;">${T('back')}</button><button class="btn-gold" onclick="checkEmpPass()" style="flex:2;">${T('loginBtn')}</button></div>
   </div></div>`;}
 
-  var L = getLang ? getLang() : LANG.ar;
-  return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;" dir="${L.dir}">
+  return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
     <div style="margin-bottom:28px;text-align:center;">
       <div style="background:#f5a800;border-radius:16px;width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;">⏱️</div>
       <div style="font-weight:800;font-size:20px;color:#f5a800;letter-spacing:1px;">BURGER TIME</div>
-      <div style="font-size:12px;color:#555;margin-top:3px;">${L.chooseAccount}</div>
+      <div style="font-size:12px;color:#555;margin-top:3px;">${T('chooseAcc')}</div>
     </div>
     <div style="width:100%;max-width:380px;">
       <button onclick="selectAdmin()" style="width:100%;padding:13px 18px;border-radius:14px;border:2px solid #f5a800;background:#1a1000;cursor:pointer;font-family:Cairo,sans-serif;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
@@ -529,7 +450,7 @@ function renderPOS(){
       ${(S.posTab||'menu')==='menu'?`
       <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
         <div style="padding:8px 12px;background:#222;border-bottom:1px solid #333;flex-shrink:0;">
-          <input placeholder="${T('search')}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:14px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
+          <input placeholder="${T('chooseAcc')==T('chooseAcc')?'🔍 '+(T('dir')==='ltr'?'Rechercher...':'ابحث عن صنف...'):''}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:14px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
         </div>
         ${!S.search?`<div style="display:flex;gap:7px;padding:8px 12px;background:#1e1e1e;border-bottom:1px solid #333;overflow-x:auto;flex-shrink:0;">
           ${Object.keys(MENU).map(cat=>`<button class="cat-btn" onclick="S.cat=\`${cat}\`;render()" style="background:${S.cat===cat?'#f5a800':'transparent'};color:${S.cat===cat?'#1a1a1a':'#f5a800'};font-size:11px;padding:6px 12px;">${cat}</button>`).join("")}
@@ -562,14 +483,14 @@ function renderPOS(){
       <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1e1e1e;">
         <div style="padding:9px 12px;border-bottom:1px solid #333;display:flex;gap:7px;flex-wrap:wrap;">
           <select onchange="S.orderType=this.value;render()" style="flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;">
-            <option value="table" ${S.orderType==="table"||S.orderType===T("onTable")?"selected":""}>${T("onTable")}</option>
-            <option value="takeaway" ${S.orderType==="takeaway"||S.orderType===T("takeaway")?"selected":""}>${T("takeaway")}</option>
-            <option value="delivery" ${S.orderType==="delivery"||S.orderType===T("delivery")?"selected":""}>${T("delivery")}</option>
+            <option ${S.orderType==="على الطاولة"?"selected":""}>${T('onTable')}</option>
+            <option ${S.orderType==="تيك أواي"?"selected":""}>${T('takeaway')}</option>
+            <option ${S.orderType==="ديلفري"?"selected":""}>${T('delivery')}</option>
           </select>
-          ${S.orderType===T("onTable")||S.orderType==="Sur place"||S.orderType==="على الطاولة"?`<input placeholder="${T('tableNum')}" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:90px;padding:8px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;">`:''}
+          ${S.orderType==="على الطاولة"?`<input placeholder="رقم الطاولة" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:90px;padding:8px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;">`:''}
         </div>
         <div style="flex:1;overflow-y:auto;padding:8px 12px;">
-          ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:50px 0;"><div style="font-size:40px;margin-bottom:10px;">🍔</div><div>${T("emptyCartMsg")}</div></div>`:''}
+          ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:50px 0;"><div style="font-size:40px;margin-bottom:10px;">🍔</div><div>${T('emptyCartMsg')}</div></div>`:''}
           ${S.cart.map(item=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #2a2a2a;">
             <span style="font-size:22px;">${item.emoji}</span>
             <div style="flex:1;min-width:0;">
@@ -585,16 +506,16 @@ function renderPOS(){
           </div>`).join('')}
         </div>
         <div style="padding:8px 12px;border-top:1px solid #333;">
-          <textarea placeholder="${T('notes')}" rows="2" oninput="S.note=this.value" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #444;font-size:13px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
+          <textarea placeholder="📝 ملاحظات..." rows="2" oninput="S.note=this.value" style="width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #444;font-size:13px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
         </div>
         <div style="padding:12px;border-top:2px solid #f5a800;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-weight:800;font-size:16px;">${T("total")}</span>
+            <span style="font-weight:800;font-size:16px;">${T('total')}</span>
             <span style="font-weight:800;font-size:20px;color:#f5a800;">${fmt(total)}</span>
           </div>
           <div style="display:flex;gap:8px;">
             <button onclick="clearCart();S.posTab='menu';render()" style="flex:0.4;padding:12px 0;border-radius:10px;border:2px solid #444;background:transparent;cursor:pointer;font-weight:700;font-size:14px;color:#888;">🗑️</button>
-            <button onclick="placeOrder();S.posTab='menu'" ${!S.cart.length?"disabled":""} style="flex:1;padding:12px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:15px;">${T("confirmOrder")}</button>
+            <button onclick="placeOrder();S.posTab='menu'" ${!S.cart.length?"disabled":""} style="flex:1;padding:12px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:15px;">${T('confirmOrder')}</button>
           </div>
         </div>
       </div>`}
@@ -605,7 +526,7 @@ function renderPOS(){
   return`<div style="display:flex;height:calc(100vh - 100px);">
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
       <div style="padding:10px 14px;background:#222;border-bottom:1px solid #333;">
-        <input placeholder="${T('search')}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
+        <input placeholder="${T('chooseAcc')==T('chooseAcc')?'🔍 '+(T('dir')==='ltr'?'Rechercher...':'ابحث عن صنف...'):''}" value="${S.search}" style="width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid #444;font-size:13px;background:#2a2a2a;color:#fff;box-sizing:border-box;" oninput="S.search=this.value;render()">
       </div>
       ${!S.search?`<div style="display:flex;gap:8px;padding:10px 14px;background:#1e1e1e;border-bottom:1px solid #333;overflow-x:auto;flex-shrink:0;">
         ${Object.keys(MENU).map(cat=>`<button class="cat-btn" onclick="S.cat=\`${cat}\`;render()" style="background:${S.cat===cat?'#f5a800':'transparent'};color:${S.cat===cat?'#1a1a1a':'#f5a800'};">${cat}</button>`).join("")}
@@ -628,17 +549,17 @@ function renderPOS(){
       </div>
     </div>
     <div style="width:285px;background:#1e1e1e;border-right:1px solid #333;display:flex;flex-direction:column;">
-      <div style="padding:11px 14px;background:#f5a800;color:#1a1a1a;font-weight:800;font-size:14px;">${T("currentOrder")}</div>
+      <div style="padding:11px 14px;background:#f5a800;color:#1a1a1a;font-weight:800;font-size:14px;">${T('currentOrder')}</div>
       <div style="padding:9px 12px;border-bottom:1px solid #333;display:flex;gap:7px;flex-wrap:wrap;">
         <select onchange="S.orderType=this.value;render()" style="flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #444;font-size:12px;background:#2a2a2a;color:#fff;">
-          <option value="table" ${S.orderType==="table"||S.orderType===T("onTable")?"selected":""}>${T("onTable")}</option>
-          <option value="takeaway" ${S.orderType==="takeaway"||S.orderType===T("takeaway")?"selected":""}>${T("takeaway")}</option>
-          <option value="delivery" ${S.orderType==="delivery"||S.orderType===T("delivery")?"selected":""}>${T("delivery")}</option>
+          <option ${S.orderType==="على الطاولة"?"selected":""}>${T('onTable')}</option>
+          <option ${S.orderType==="تيك أواي"?"selected":""}>${T('takeaway')}</option>
+          <option ${S.orderType==="ديلفري"?"selected":""}>${T('delivery')}</option>
         </select>
-        ${S.orderType===T("onTable")||S.orderType==="Sur place"||S.orderType==="على الطاولة"?`<input placeholder="${T('tableNum')}" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:78px;padding:7px 8px;border-radius:8px;border:1.5px solid #444;font-size:12px;background:#2a2a2a;color:#fff;">`:''}
+        ${S.orderType==="على الطاولة"?`<input placeholder="رقم الطاولة" value="${S.tableNum}" oninput="S.tableNum=this.value" style="width:78px;padding:7px 8px;border-radius:8px;border:1.5px solid #444;font-size:12px;background:#2a2a2a;color:#fff;">`:''}
       </div>
       <div style="flex:1;overflow-y:auto;padding:7px 11px;">
-        ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:34px 0;"><div style="font-size:32px;margin-bottom:8px;">🍔</div><div style="font-size:12px;">${T("emptyCart")}</div></div>`:''}
+        ${S.cart.length===0?`<div style="text-align:center;color:#555;padding:34px 0;"><div style="font-size:32px;margin-bottom:8px;">🍔</div><div style="font-size:12px;">${T('emptyCart')}</div></div>`:''}
         ${S.cart.map(item=>`<div style="display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid #2a2a2a;">
           <span style="font-size:16px;">${item.emoji}</span>
           <div style="flex:1;min-width:0;">
@@ -654,16 +575,16 @@ function renderPOS(){
         </div>`).join('')}
       </div>
       <div style="padding:7px 11px;border-top:1px solid #333;">
-        <textarea placeholder="${T('notes')}" rows="2" oninput="S.note=this.value" style="width:100%;padding:7px 10px;border-radius:8px;border:1.5px solid #444;font-size:12px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
+        <textarea placeholder="📝 ملاحظات..." rows="2" oninput="S.note=this.value" style="width:100%;padding:7px 10px;border-radius:8px;border:1.5px solid #444;font-size:12px;resize:none;box-sizing:border-box;background:#2a2a2a;color:#fff;">${S.note}</textarea>
       </div>
       <div style="padding:11px 13px;border-top:2px solid #f5a800;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-weight:800;font-size:15px;">${T("total")}</span>
+          <span style="font-weight:800;font-size:15px;">${T('total')}</span>
           <span style="font-weight:800;font-size:18px;color:#f5a800;">${fmt(total)}</span>
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="clearCart()" style="flex:0.4;padding:10px 0;border-radius:10px;border:2px solid #444;background:transparent;cursor:pointer;font-weight:700;font-size:13px;color:#888;">🗑️</button>
-          <button onclick="placeOrder()" ${!S.cart.length?"disabled":""} style="flex:1;padding:10px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:13px;">${T("confirmOrder")}</button>
+          <button onclick="placeOrder()" ${!S.cart.length?"disabled":""} style="flex:1;padding:10px 0;border-radius:10px;border:none;cursor:${S.cart.length?"pointer":"not-allowed"};background:${S.cart.length?"#f5a800":"#333"};color:${S.cart.length?"#1a1a1a":"#555"};font-weight:800;font-size:13px;">${T('confirmOrder')}</button>
         </div>
       </div>
     </div>
@@ -688,7 +609,7 @@ function renderOrders(){
   // طلبات تحتاج موافقة
   if(isAdmin()&&pendingReqs.length){
     html+=`<div style="background:#1a0e00;border:2px solid #f5a800;border-radius:12px;padding:12px;margin-bottom:12px;">
-      <div style="font-weight:800;color:#f5a800;font-size:13px;margin-bottom:8px;">⚠️ ${T("needsApproval")} (${pendingReqs.length})</div>`;
+      <div style="font-weight:800;color:#f5a800;font-size:13px;margin-bottom:8px;">⚠️ تحتاج موافقتك (${pendingReqs.length})</div>`;
     pendingReqs.forEach(req=>{
       const o=orders.find(x=>x.id===req.orderId);
       if(!o)return;
@@ -707,16 +628,16 @@ function renderOrders(){
   }
 
   if(!visibleOrders.length){
-    html+='<div style="text-align:center;color:#555;padding:44px;background:#2a2a2a;border-radius:16px;"><div style="font-size:44px;">📋</div><div style="margin-top:10px;font-size:13px;">' + T('noOrders') + '</div></div>';
+    html+='<div style="text-align:center;color:#555;padding:44px;background:#2a2a2a;border-radius:16px;"><div style="font-size:44px;">📋</div><div style="margin-top:10px;font-size:13px;">لا توجد طلبات</div></div>';
   }
 
   // كل طلب
-  const ST2={"جديد":{bg:"#2a1a00",border:"#f5a800",color:"#f5a800",icon:"🆕"},"قيد التنفيذ":{bg:"#001a2a",border:"#1a8fe0",color:"#1a8fe0",icon:"🔥"},"مكتمل":{bg:"#001a0a",border:"#2d9e5a",color:"#2d9e5a",icon:"✅"},"ملغي":{bg:"#1a0000",border:"#c0391b",color:"#c0391b",icon:"❌"}};
+  const ST2={T("sNew"):{bg:"#2a1a00",border:"#f5a800",color:"#f5a800",icon:"🆕"},[T("sProg")]:{bg:"#001a2a",border:"#1a8fe0",color:"#1a8fe0",icon:"🔥"},[T("sDone")]:{bg:"#001a0a",border:"#2d9e5a",color:"#2d9e5a",icon:"✅"},[T("sCanc")]:{bg:"#1a0000",border:"#c0391b",color:"#c0391b",icon:"❌"}};
   const SF=["جديد","قيد التنفيذ","مكتمل"];
 
   visibleOrders.forEach(order=>{
     const st=ST2[order.status]||ST2["جديد"];
-    const done=order.status===T('sDone')||order.status===T('sCancelled');
+    const done=order.status===T('sDone')||order.status===T('sCanc');
     const next=SF[SF.indexOf(order.status)+1];
     const myDel=delReqs.find(r=>r.orderId===order.id&&r.status==="pending");
     const showAmt=showRev||order.placedById===S.currentUser.id;
@@ -724,7 +645,7 @@ function renderOrders(){
     html+=`<div style="background:#2a2a2a;border-radius:12px;border:1.5px solid ${myDel?"#f5a800":"#333"};margin-bottom:9px;overflow:hidden;">
       <div style="padding:9px 12px;background:#1e1e1e;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span style="font-weight:800;font-size:13px;">${order.orderType===T("onTable")||order.orderType==="table"||order.orderType==="Sur place"||order.orderType==="على الطاولة"?"🪑 "+T("tableNum")+" "+order.tableNum:order.orderType===T("takeaway")||order.orderType==="takeaway"||order.orderType==="À emporter"||order.orderType==="تيك أواي"?"🥡 "+T("takeaway"):"🛵 "+T("delivery")}</span>
+          <span style="font-weight:800;font-size:13px;">${order.orderType===T("onTable")||order.orderType==="على الطاولة"?"🪑 "+order.tableNum:order.orderType===T("takeaway")||order.orderType==="تيك أواي"?"🥡 "+T("takeaway"):"🛵 "+T("delivery")}</span>
           <span style="color:#555;font-size:11px;">${order.time}</span>
           <span style="font-size:10px;color:#444;background:#2a2a2a;border-radius:5px;padding:1px 6px;">👤 ${order.placedBy}</span>
         </div>
@@ -975,7 +896,7 @@ function render(){
   const pendingCount=getPendingReqs().length;
   const canSeeExp=isAdmin()||hasPerm("viewExpenses")||hasPerm("addExpenses");
   document.getElementById("app").innerHTML=`
-    <div style="background:#111;padding:9px 13px;" dir="${getLang().dir}";display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;border-bottom:2px solid #f5a800;">
+    <div style="background:#111;padding:9px 13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;border-bottom:2px solid #f5a800;">
       <div style="display:flex;align-items:center;gap:9px;">
         <div style="background:#f5a800;border-radius:9px;padding:5px 9px;font-size:18px;">⏱️</div>
         <div><div style="font-weight:800;font-size:14px;color:#f5a800;letter-spacing:1px;">BURGER TIME</div>
@@ -985,18 +906,18 @@ function render(){
         <div style="display:flex;align-items:center;gap:7px;background:#2a2a2a;border-radius:9px;padding:6px 11px;border:1.5px solid ${isAdmin()?'#f5a800':'#3a3a3a'};">
           <span>${isAdmin()?"👑":"👤"}</span>
           <span style="font-weight:700;font-size:12px;color:${isAdmin()?'#f5a800':'#fff'};">${S.currentUser.name}</span>
-          <button onclick="logout()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:10px;font-family:Cairo,sans-serif;">${T("logout")}</button>
+          <button onclick="logout()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:10px;font-family:Cairo,sans-serif;">${T('logout')}</button>
         </div>
-        <button class="tab-btn" onclick="S.view='pos';render()" style="background:${S.view==="pos"?"#f5a800":"transparent"};color:${S.view==="pos"?"#1a1a1a":"#f5a800"};">${T("cashier")}</button>
+        <button class="tab-btn" onclick="S.view='pos';render()" style="background:${S.view==="pos"?"#f5a800":"transparent"};color:${S.view==="pos"?"#1a1a1a":"#f5a800"};">${T('cashier')}</button>
         <button class="tab-btn" onclick="S.view='orders';render()" style="background:${S.view==="orders"?"#f5a800":"transparent"};color:${S.view==="orders"?"#1a1a1a":"#f5a800"};position:relative;">
           📋 الطلبات${isAdmin()&&pendingCount?`<span style="position:absolute;top:-7px;left:-7px;background:#c0391b;color:#fff;border-radius:20px;width:17px;height:17px;font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;">${pendingCount}</span>`:""}
         </button>
-        ${canSeeExp?`<button class="tab-btn" onclick="S.view='expenses';render()" style="background:${S.view==="expenses"?"#c0391b":"transparent"};color:${S.view==="expenses"?"#fff":"#c0391b"};border-color:#c0391b;">${T("expenses")}</button>`:""}
-        ${isAdmin()?`<button class="tab-btn" onclick="S.view='employees';openEmpForm(null)" style="background:${S.view==="employees"?"#f5a800":"transparent"};color:${S.view==="employees"?"#1a1a1a":"#f5a800"};">${T("employees")}</button>
+        ${canSeeExp?`<button class="tab-btn" onclick="S.view='expenses';render()" style="background:${S.view==="expenses"?"#c0391b":"transparent"};color:${S.view==="expenses"?"#fff":"#c0391b"};border-color:#c0391b;">${T('expenses')}</button>`:""}
+        ${isAdmin()?`<button class="tab-btn" onclick="S.view='employees';openEmpForm(null)" style="background:${S.view==="employees"?"#f5a800":"transparent"};color:${S.view==="employees"?"#1a1a1a":"#f5a800"};">${T('employees')}</button>
 `:""}
       </div>
     </div>
-    <div style="background:#0d0d0d;padding:5px 13px;display:flex;gap:16px;font-size:11px;color:#444;flex-wrap:wrap;border-bottom:1px solid #1e1e1e;" dir="${getLang().dir}">
+    <div style="background:#0d0d0d;padding:5px 13px;display:flex;gap:16px;font-size:11px;color:#444;flex-wrap:wrap;border-bottom:1px solid #1e1e1e;">
       <span>📦 اليوم: <b style="color:#f5a800;">${getTodayO().length}</b></span>
       ${isAdmin()||hasPerm("viewRevenue")?`<span>💰 الإيرادات: <b style="color:#2d9e5a;">${fmt(getRevenue())}</b></span>`:""}
       ${isAdmin()?`<span>👑 ثابت: <b style="color:#a55fd0;">${fmt(todayExp("admin"))}</b></span><span>📦 يومي: <b style="color:#c0391b;">${fmt(todayExp("daily"))}</b></span>`:""}
@@ -1008,11 +929,11 @@ function render(){
     ${S.showConfirm?`<div class="overlay" onclick="if(event.target===this){S.showConfirm=false;render();}">
       <div style="background:#1e1e1e;border:2px solid #f5a800;border-radius:16px;padding:26px;text-align:center;max-width:280px;">
         <div style="font-size:48px;margin-bottom:10px;">✅</div>
-        <div style="font-weight:800;font-size:16px;color:#f5a800;margin-bottom:6px;">${T("orderDone")}</div>
-        <div style="color:#666;font-size:12px;margin-bottom:16px;">${T("followOrders")}</div>
+        <div style="font-weight:800;font-size:16px;color:#f5a800;margin-bottom:6px;">${T('orderDone')}</div>
+        <div style="color:#666;font-size:12px;margin-bottom:16px;">${T('followOrders')}</div>
         <div style="display:flex;gap:8px;">
-          <button onclick="S.showConfirm=false;S.view='orders';render()" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #333;background:transparent;color:#aaa;font-family:Cairo,sans-serif;font-weight:700;font-size:12px;cursor:pointer;">${T('orders')}</button>
-          <button onclick="S.showConfirm=false;render()" style="flex:1.5;padding:9px 0;border-radius:10px;border:none;background:#f5a800;color:#1a1a1a;font-family:Cairo,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">${T("newOrder")}</button>
+          <button onclick="S.showConfirm=false;S.view='orders';render()" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #333;background:transparent;color:#aaa;font-family:Cairo,sans-serif;font-weight:700;font-size:12px;cursor:pointer;">📋 الطلبات</button>
+          <button onclick="S.showConfirm=false;render()" style="flex:1.5;padding:9px 0;border-radius:10px;border:none;background:#f5a800;color:#1a1a1a;font-family:Cairo,sans-serif;font-weight:800;font-size:13px;cursor:pointer;">${T('newOrder')}</button>
         </div>
       </div>
     </div>`:""}
